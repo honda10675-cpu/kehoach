@@ -185,7 +185,7 @@ if st.session_state.db.get("handoffs"):
 else:
     report_text_full += "(Chưa có nội dung giao ca / 暂无交接事项)\n"
 
-# --- TẠO HÌNH BẢNG TỰ ĐỘNG HOẠT ĐỘNG CHUẨN 100% TRÊN MỌI TRÌNH DUYỆT ---
+# --- RENDER NÚT SAO CHÉP VÀ BẢNG (ẨN BẢNG Ở TRANG 2 VÀ 3) ---
 def render_copy_button(page_num):
     text_content = report_text_p1 if page_num == 1 else report_text_full
     lines = [line for line in text_content.strip().split("\n") if line]
@@ -198,8 +198,11 @@ def render_copy_button(page_num):
         else:
             items_html += f'<div style="padding:4px 0; color:#334155; font-size:14px; border-bottom:1px dashed #f1f5f9;">{escaped}</div>'
 
+    # Chỉ hiển thị khung preview nếu là Trang 1
+    box_display = "block" if page_num == 1 else "none"
+
     custom_html = f"""
-    <div id="report-box-{page_num}" style="background:#ffffff; border:2px solid #2563eb; border-radius:10px; padding:15px; margin-bottom:10px; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
+    <div id="report-box-{page_num}" style="display: {box_display}; background:#ffffff; border:2px solid #2563eb; border-radius:10px; padding:15px; margin-bottom:10px; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
         <div style="text-align:center; font-weight:bold; color:#2563eb; font-size:16px; margin-bottom:10px;">
             📋 BẢNG TIẾN ĐỘ BẢO TRÌ / 维修进度表
         </div>
@@ -210,7 +213,11 @@ def render_copy_button(page_num):
     <script>
     function generateAndCopy_{page_num}() {{
         const element = document.getElementById('report-box-{page_num}');
+        element.style.display = 'block'; // Tạm thời hiện để chụp ảnh nếu đang ẩn
         html2canvas(element, {{ scale: 2 }}).then(canvas => {{
+            if ("{box_display}" === "none") {{
+                element.style.display = 'none'; // Khôi phục lại trạng thái ẩn
+            }}
             canvas.toBlob(blob => {{
                 try {{
                     const item = new ClipboardItem({{ "image/png": blob }});
@@ -249,7 +256,8 @@ def render_copy_button(page_num):
         📷 SAO CHÉP HÌNH BẢNG GỬI ZALO/WECHAT
     </button>
     """
-    st.components.v1.html(custom_html, height=280, scrolling=True)
+    comp_height = 280 if page_num == 1 else 65
+    st.components.v1.html(custom_html, height=comp_height, scrolling=False)
 
 # --- TIÊU ĐỀ CHÍNH ---
 st.markdown("<h3 style='text-align: center; color: #0f172a; margin-bottom: 5px;'>QUẢN LÝ BẢO TRÌ MÁY / 设备维修管理</h3>", unsafe_allow_html=True)
@@ -294,7 +302,6 @@ if "TRANG 1" in page:
                 card_style = "row-card-priority" if t["is_priority"] else "row-card"
                 prio_tag = "[ƯU TIÊN / 优先]" if t["is_priority"] else ""
 
-                # ĐÃ BỎ PHẦN GIỜ KHOANH ĐEN Ở ĐÂY
                 st.markdown(f"""
                 <div class="{card_style}">
                     <strong>{idx}/ {html.escape(t['machine'])}</strong> <span style="color:#d97706; font-weight:bold;">{prio_tag}</span><br>
@@ -423,6 +430,8 @@ if "TRANG 1" in page:
 elif "TRANG 2" in page:
     st.subheader("Ghi Chú Dừng Máy Sửa / 停机维修记录")
 
+    render_copy_button(2)
+
     with st.form("form_repair", clear_on_submit=True):
         st.markdown("### Báo Dừng Máy Sửa Mới / 登记停机维修")
         r_machine = st.text_input("Tên Máy Dừng / 停机设备 *", placeholder="Ví dụ: PE59")
@@ -449,7 +458,6 @@ elif "TRANG 2" in page:
                 st.error("Bắt buộc điền thông tin (*) / 请填写完整")
 
     st.divider()
-    render_copy_button(2)
 
     st.markdown("### DANH SÁCH MÁY DỪNG SỬA / 停机维修列表")
 
@@ -495,6 +503,8 @@ elif "TRANG 3" in page:
     st.subheader("Giao Ca / 交接班")
     st.caption("Dữ liệu Trang 3 sẽ tự động xoá sạch vào 18:00 và 05:00 hằng ngày / 数据将在每天 18:00 和 05:00 自动清空。")
 
+    render_copy_button(3)
+
     with st.form("form_handoff", clear_on_submit=True):
         st.markdown("### Nhập Nội Dung Bàn Giao Ca / 填写交接内容")
         col_h1, col_h2 = st.columns([1, 2])
@@ -525,7 +535,6 @@ elif "TRANG 3" in page:
                 st.error("Vui lòng nhập đầy đủ (*) / 请填写完整")
 
     st.divider()
-    render_copy_button(3)
 
     st.markdown("### DỮ LIỆU GIAO CA TRONG NGÀY / 当天交接数据")
 
