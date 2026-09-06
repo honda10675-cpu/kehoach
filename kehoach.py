@@ -4,7 +4,9 @@ import datetime
 import pytz
 import html
 import re
-from deep_translator import GoogleTranslator
+import urllib.parse
+import urllib.request
+import json
 
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(
@@ -37,10 +39,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN SỬA LỖI VIẾT TẮT / TELEX ---
+# --- BỘ TỪ ĐIỂN SỬA LỖI TELEX VÀ TỪ CHUYÊN NGÀNH ---
 TELEX_FIX = [
     (r"\bddijnhj\b|\bdijnh\b|\bdinh hinh\b", "định hình"),
-    (r"\braap\b|\brap\b", "ráp"),
+    (r"\braap\b|\brap\b", "Ráp"),
     (r"\bao lo\b|\bao loi\b", "áo lô"),
     (r"\bkeo gian\b|\bkeo daxn\b", "kéo giản"),
     (r"\bluoi loc hat\b|\bluoi loc\b", "lưới lọc hạt"),
@@ -52,6 +54,17 @@ TELEX_FIX = [
     (r"\btruc vit\b", "trục vít"),
     (r"\btach nuoc\b", "tách nước"),
     (r"\bthu cuon\b", "thu cuộn"),
+    (r"\bthay\b", "Thay"),
+    (r"\bsua\b", "Sửa"),
+    (r"\bve sinh\b", "Vệ sinh"),
+    (r"\bcan chinh\b", "Căn chỉnh"),
+    (r"\bbac dan\b|\bvong bi\b", "bạc đạn"),
+    (r"\bcot dao\b|\btruc dao\b", "cốt dao"),
+    (r"\bbien tan\b", "biến tần"),
+    (r"\bdong co\b|\bmotor\b", "động cơ"),
+    (r"\bday curoa\b", "dây curoa"),
+    (r"\bmay dun\b", "máy đùn"),
+    (r"\bmay ben\b", "máy bện"),
 ]
 
 def clean_vietnamese_text(text):
@@ -67,8 +80,16 @@ def translate_to_zh(text):
         return ""
     try:
         cleaned_text = clean_vietnamese_text(text)
-        translated = GoogleTranslator(source='auto', target='zh-CN').translate(cleaned_text)
-        return translated if translated else ""
+        url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=zh-CN&dt=t&q=" + urllib.parse.quote(cleaned_text)
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+        response = urllib.request.urlopen(req, timeout=5)
+        result = json.loads(response.read().decode('utf-8'))
+        
+        translated_text = ""
+        for sentence in result[0]:
+            if sentence[0]:
+                translated_text += sentence[0]
+        return translated_text.strip()
     except Exception:
         return ""
 
