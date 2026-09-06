@@ -39,7 +39,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN SỬA LỖI TELEX VÀ TỪ CHUYÊN NGÀNH ---
+# --- BỘ TỪ ĐIỂN CHUYÊN NGÀNH & TELEX ---
 TELEX_FIX = [
     (r"\bddijnhj\b|\bdijnh\b|\bdinh hinh\b", "định hình"),
     (r"\braap\b|\brap\b", "Ráp"),
@@ -54,6 +54,8 @@ TELEX_FIX = [
     (r"\btruc vit\b", "trục vít"),
     (r"\btach nuoc\b", "tách nước"),
     (r"\bthu cuon\b", "thu cuộn"),
+    (r"\bxi lieu\b|\bxi leiu\b", "rò rỉ nguyên liệu"),
+    (r"\bkhu luoi\b", "khu vực lưới lọc"),
     (r"\bthay\b", "Thay"),
     (r"\bsua\b", "Sửa"),
     (r"\bve sinh\b", "Vệ sinh"),
@@ -67,6 +69,16 @@ TELEX_FIX = [
     (r"\bmay ben\b", "máy bện"),
 ]
 
+DICT_DIRECT = {
+    "xi lieu": "漏料",
+    "xì liệu": "漏料",
+    "khu lưới a": "A网区",
+    "khu luoi a": "A网区",
+    "khu lưới": "网区",
+    "trục tách nước": "脱水轴",
+    "truc tach nuoc": "脱水轴",
+}
+
 def clean_vietnamese_text(text):
     if not text:
         return ""
@@ -75,12 +87,17 @@ def clean_vietnamese_text(text):
         txt = re.sub(pattern, replace_val, txt, flags=re.IGNORECASE)
     return txt
 
-def translate_to_zh(text):
-    if not text or not text.strip():
+def single_translate_api(text_segment):
+    if not text_segment or not text_segment.strip():
         return ""
+    
+    # Kiểm tra từ điển trực tiếp
+    low_seg = text_segment.strip().lower()
+    if low_seg in DICT_DIRECT:
+        return DICT_DIRECT[low_seg]
+
     try:
-        cleaned_text = clean_vietnamese_text(text)
-        url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=zh-CN&dt=t&q=" + urllib.parse.quote(cleaned_text)
+        url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=zh-CN&dt=t&q=" + urllib.parse.quote(text_segment)
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
         response = urllib.request.urlopen(req, timeout=5)
         result = json.loads(response.read().decode('utf-8'))
@@ -93,12 +110,33 @@ def translate_to_zh(text):
     except Exception:
         return ""
 
+def translate_to_zh(text):
+    if not text or not text.strip():
+        return ""
+    
+    cleaned_text = clean_vietnamese_text(text)
+    
+    # Tách các vế theo dấu phẩy hoặc phẩy cách
+    parts = re.split(r'([,，;；])', cleaned_text)
+    translated_parts = []
+    
+    for part in parts:
+        if part in [',', '，', ';', '；']:
+            translated_parts.append(part + " ")
+        elif part.strip():
+            zh_seg = single_translate_api(part.strip())
+            translated_parts.append(zh_seg if zh_seg else part.strip())
+            
+    full_zh = "".join(translated_parts).strip()
+    return full_zh
+
 def make_bilingual(text):
     if not text:
         return ""
     clean_txt = clean_vietnamese_text(text)
     zh_txt = translate_to_zh(clean_txt)
-    if zh_txt and zh_txt.lower() != clean_txt.lower():
+    
+    if zh_txt and zh_txt.strip() != clean_txt.strip():
         return f"{clean_txt} / {zh_txt}"
     return clean_txt
 
