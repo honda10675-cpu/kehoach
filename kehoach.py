@@ -5,6 +5,7 @@ import pytz
 import html
 import json
 import re
+from deep_translator import GoogleTranslator
 
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(
@@ -37,61 +38,27 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH ---
+# --- BỘ TỪ ĐIỂN DỰ PHÒNG (Khi mất mạng) ---
 DICT_SPELL_TRANS = [
     (r"\bthay\b", "Thay", "更换"),
     (r"\btach\b|\btách\b", "Tách", "拆卸"),
     (r"\bsua\b|\bsửa\b", "Sửa", "维修"),
-    (r"\blech\b|\blệch\b", "lệch", "偏位"),
     (r"\blap\b|\blắp\b|\brap\b|\bráp\b", "Ráp", "安装"),
     (r"\bve sinh\b|\bvệ sinh\b", "Vệ sinh", "清理"),
     (r"\bcan chinh\b|\bcăn chỉnh\b", "Căn chỉnh", "校准"),
     (r"\bdung may\b|\bdừng máy\b", "Dừng máy", "停机"),
-    (r"\bxu ly\b|\bxử lý\b", "Xử lý", "处理"),
-    (r"\blam\b|\blàm\b", "Làm", "做"),
     (r"\bao lo\b|\báo lô\b", "áo lô", "辊套"),
     (r"\blo\b|\blô\b", "lô", "压辊"),
     (r"\bkeo gian\b|\bkéo giản\b|\bkéo giãn\b", "kéo giãn", "拉伸"),
-    (r"\bkeo\b|\bkéo\b", "kéo", "牵引"),
-    (r"\bdau khuôn\b|\bdau khuon\b|\bđầu khuôn\b", "đầu khuôn", "模头"),
-    (r"\bkhuon\b|\bkhuôn\b", "khuôn", "模具"),
-    (r"\bvan giam ap\b|\bvan giảm áp\b", "van giảm áp", "减压阀"),
-    (r"\bhoi nong\b|\bhơi nóng\b", "hơi nóng", "热蒸汽"),
-    (r"\bbon nuoc nong\b|\bbồn nước nóng\b", "bồn nước nóng", "热水箱"),
-    (r"\bbac dan\b|\bvong bi\b|\bbạc đạn\b|\bvòng bi\b", "bạc đạn", "轴承"),
-    (r"\bcot dao\b|\bcốt dao\b|\btruc dao\b|\btrục dao\b", "cốt dao", "刀轴"),
-    (r"\bthu cuon\b|\bthu cuộn\b|\bcuon\b|\bcuộn\b", "thu cuộn", "收卷"),
     (r"\bhop so\b|\bhộp số\b", "hộp số", "齿轮箱"),
     (r"\btruc vit\b|\btrục vít\b", "trục vít", "螺杆"),
     (r"\btruc\b|\btrục\b", "trục", "轴"),
     (r"\btach nuoc\b|\btách nước\b", "tách nước", "脱水"),
     (r"\bbien tan\b|\bbiến tần\b", "biến tần", "变频器"),
     (r"\bdong co\b|\bmotor\b|\bđộng cơ\b", "động cơ", "电机"),
-    (r"\bxilanh\b|\bxi lanh\b", "xi lanh", "气缸"),
-    (r"\bday curoa\b|\bcu roa\b", "dây curoa", "皮带"),
-    (r"\bcam bien\b|\bcảm biến\b", "cảm biến", "传感器"),
-    (r"\bmay dun\b|\bmáy đùn\b", "máy đùn", "挤出机"),
-    (r"\bmay ben\b|\bmáy bện\b", "máy bện", "绞线机"),
-    (r"\bro le\b|\brơ le\b", "rơ le", "继电器"),
-    (r"\bvan tu\b|\bvan từ\b", "van từ", "电磁阀"),
-    (r"\bduoi\b|\bdưới\b", "dưới", "下"),
-    (r"\btren\b|\btrên\b", "trên", "上"),
-    (r"\bvi tri\b|\bvị trí\b", "vị trí", "位置"),
-    (r"\bnhiet do\b|\bnhiệt độ\b", "nhiệt độ", "温度"),
-    (r"\bhut phe\b|\bhút phế\b", "hút phế", "吸废料"),
-    (r"\bhut\b|\bhút\b", "hút", "吸"),
-    (r"\bphe\b|\bphế\b", "phế", "废料"),
-    (r"\bluoi loc nuoc\b|\blưới lọc nước\b", "lưới lọc nước", "滤水网"),
-    (r"\bluoi loc\b|\blưới lọc\b", "lưới lọc", "滤网"),
 ]
 
-def auto_correct_and_translate(text):
-    if not text:
-        return "", ""
-    # Nếu đã chứa ký tự tiếng Trung hoặc dấu / phân cách song ngữ thì giữ nguyên
-    if "/" in text or re.search(r'[\u4e00-\u9fff]', text):
-        return text.strip(), ""
-        
+def fallback_translate(text):
     viet_text = text.strip()
     zh_parts = []
     for pattern, vi_correct, zh_word in DICT_SPELL_TRANS:
@@ -99,15 +66,32 @@ def auto_correct_and_translate(text):
             viet_text = re.sub(pattern, vi_correct, viet_text, flags=re.IGNORECASE)
             if zh_word not in zh_parts:
                 zh_parts.append(zh_word)
-
     viet_text = viet_text[0].upper() + viet_text[1:] if len(viet_text) > 0 else viet_text
     zh_text = " ".join(zh_parts)
     return viet_text, zh_text
 
+def auto_translate_online(text):
+    if not text:
+        return "", ""
+    # Nếu đã có tiếng Trung hoặc dấu phân cách / thì giữ nguyên
+    if "/" in text or re.search(r'[\u4e00-\u9fff]', text):
+        return text.strip(), ""
+        
+    raw_text = text.strip()
+    
+    # 1. Thử dịch qua Google Translate Online
+    try:
+        translated_zh = GoogleTranslator(source='auto', target='zh-CN').translate(raw_text)
+        formatted_vi = raw_text[0].upper() + raw_text[1:] if len(raw_text) > 0 else raw_text
+        return formatted_vi, translated_zh
+    except Exception:
+        # 2. Nếu không có mạng hoặc lỗi API -> Tự động dùng từ điển dự phòng
+        return fallback_translate(raw_text)
+
 def format_bilingual_content(raw_text):
     if not raw_text:
         return ""
-    vi_cor, zh_tr = auto_correct_and_translate(raw_text)
+    vi_cor, zh_tr = auto_translate_online(raw_text)
     if zh_tr:
         return f"{vi_cor} / {zh_tr}"
     return vi_cor
@@ -181,7 +165,6 @@ def get_report_text(report_type):
         tasks = st.session_state.db.get("tasks", [])
         if tasks:
             for i, task in enumerate(tasks, start=1):
-                p_flag = "[ƯU TIÊN / 优先] " if task.get("is_priority") else ""
                 st_flag = "[Đã xong / 已完成]" if task.get("status") == "done" else ("[Đã giao ca / 已交接]" if task.get("status") == "handoff" else "[Đang làm / 进行中]")
                 text += f"{i}/ {task['machine']} - {task['content']} ({st_flag})\n"
         else:
@@ -408,11 +391,11 @@ if "TRANG 1" in page:
             st.markdown("### Nhập Công Việc Mới / 添加新工作")
             col_t1, col_t2 = st.columns([2, 1])
             with col_t1:
-                t_machine = st.text_input("Công việc và Máy / 设备与工作 *", placeholder="Ví dụ: PE21 Ráp áo lô kéo giản 2")
+                t_machine = st.text_input("Công việc và Máy / 设备与工作 *", placeholder="Ví dụ: PE21")
             with col_t2:
                 t_prio = st.checkbox("Ưu tiên / 优先")
 
-            t_content = st.text_area("Nội dung chi tiết / 详细内容 *", placeholder="Ví dụ: Thay dau khuon PE1")
+            t_content = st.text_area("Nội dung chi tiết / 详细内容 *", placeholder="Ví dụ: Ráp áo lô kéo giản 2")
             
             if st.form_submit_button("LƯU CÔNG VIỆC / 保存工作", use_container_width=True):
                 if t_machine.strip() and t_content.strip():
@@ -444,7 +427,7 @@ elif "TRANG 2" in page:
     with st.form("form_repair", clear_on_submit=True):
         st.markdown("### Báo Dừng Máy Sửa Mới / 登记停机维修")
         r_machine = st.text_input("Tên Máy Dừng / 停机设备 *", placeholder="Ví dụ: PE66")
-        r_content = st.text_area("Sự cố & Nội dung sửa / 故障与维修内容 *", placeholder="Ví dụ: dung may thay van giam ap hoi nong bon nuoc nong")
+        r_content = st.text_area("Sự cố & Nội dung sửa / 故障与维修内容 *", placeholder="Ví dụ: Thay van giảm áp hơi nóng")
         
         if st.form_submit_button("BÁO DỪNG MÁY / 提交停机", use_container_width=True):
             if r_machine.strip() and r_content.strip():
@@ -514,7 +497,7 @@ elif "TRANG 3" in page:
             h_sender = st.text_input("Người giao / 交接人 *", placeholder="Tên NV")
             h_machine = st.text_input("Tên máy / 设备 *", placeholder="Tên máy")
         with col_h2:
-            h_content = st.text_area("Nội dung bàn giao / 交接内容 *", placeholder="Ví dụ: thay bac dan cot dao")
+            h_content = st.text_area("Nội dung bàn giao / 交接内容 *", placeholder="Ví dụ: Thay bạc đạn cốt dao")
 
         if st.form_submit_button("GỬI BÀN GIAO CA / 提交交接", use_container_width=True):
             if h_sender.strip() and h_machine.strip() and h_content.strip():
