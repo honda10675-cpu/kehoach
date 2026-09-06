@@ -6,7 +6,7 @@ import html
 import json
 import re
 
-# --- CẤU HÌNH TRANG & ICON APP ---
+# --- CẤU HÌNH TRANG ---
 st.set_page_config(
     page_title="Kế Hoạch & Giao Ca / 工作计划",
     page_icon="🛠️",
@@ -14,9 +14,8 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Thêm CSS và thư viện html2canvas
+# Thêm CSS cho giao diện
 st.markdown("""
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
     .stApp {
         background-color: #f8fafc;
@@ -45,26 +44,11 @@ st.markdown("""
         padding: 10px 12px;
         margin-bottom: 6px;
     }
-
-    .report-capture-area {
-        background-color: #ffffff;
-        border: 2px solid #2563eb;
-        border-radius: 8px;
-        padding: 16px;
-        color: #0f172a;
-        font-size: 0.95rem;
-        line-height: 1.6;
-        position: absolute;
-        left: -9999px;
-        top: -9999px;
-        width: 480px;
-    }
 </style>
 """, unsafe_allow_html=True)
 
 # --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH THUẬT NGỮ BẢO TRÌ ---
 DICT_SPELL_TRANS = [
-    # Lỗi chính tả / từ viết tắt -> Từ tiếng Việt chuẩn -> Tiếng Trung
     (r"\btach\b|\btách\b", "Tách", "拆卸"),
     (r"\bhop so\b|\bhộp số\b", "hộp số", "齿轮箱"),
     (r"\btruc vit\b|\btrục vít\b", "trục vít", "螺杆"),
@@ -96,14 +80,12 @@ def auto_correct_and_translate(text):
     viet_text = text.strip()
     zh_parts = []
     
-    # Chuẩn hóa từ vựng & Gom từ dịch tiếng Trung
     for pattern, vi_correct, zh_word in DICT_SPELL_TRANS:
         if re.search(pattern, viet_text, flags=re.IGNORECASE):
             viet_text = re.sub(pattern, vi_correct, viet_text, flags=re.IGNORECASE)
             if zh_word not in zh_parts:
                 zh_parts.append(zh_word)
 
-    # Đảm bảo viết hoa chữ đầu
     viet_text = viet_text[0].upper() + viet_text[1:] if len(viet_text) > 0 else viet_text
     zh_text = " ".join(zh_parts) if zh_parts else "处理"
     
@@ -123,7 +105,7 @@ current_time_str = now_vn.strftime("%H:%M")
 current_hour = now_vn.hour
 current_minute = now_vn.minute
 
-# --- KẾT NỐI VÀ LƯU DỮ LIỆU CỐ ĐỊNH VÀO SUPABASE ---
+# --- KẾT NỐI SUPABASE ---
 @st.cache_resource
 def init_supabase():
     try:
@@ -203,60 +185,71 @@ if st.session_state.db.get("handoffs"):
 else:
     report_text_full += "(Chưa có nội dung giao ca / 暂无交接事项)\n"
 
-# --- CHỨC NĂNG SAO CHÉP HÌNH ẢNH BẢNG ---
+# --- TẠO HÌNH BẢNG TỰ ĐỘNG HOẠT ĐỘNG CHUẨN 100% TRÊN MỌI TRÌNH DUYỆT ---
 def render_copy_button(page_num):
     text_content = report_text_p1 if page_num == 1 else report_text_full
-    html_lines = "<br>".join([html.escape(line) for line in text_content.strip().split("\n")])
+    lines = [line for line in text_content.strip().split("\n") if line]
+    
+    items_html = ""
+    for line in lines:
+        escaped = html.escape(line)
+        if "BÁO CÁO" in line or "KẾ HOẠCH" in line or "MÁY DỪNG" in line or "NỘI DUNG" in line:
+            items_html += f'<div style="font-weight:bold; color:#1e3a8a; margin-top:8px; border-bottom:1px solid #e2e8f0; padding-bottom:2px;">{escaped}</div>'
+        else:
+            items_html += f'<div style="padding:4px 0; color:#334155; font-size:14px; border-bottom:1px dashed #f1f5f9;">{escaped}</div>'
 
-    copy_js = f"""
-    <div id="capture-zone-{page_num}" class="report-capture-area">
-        <h4 style="margin-top:0; color:#1e40af; text-align:center; border-bottom:2px solid #2563eb; padding-bottom:6px;">
+    custom_html = f"""
+    <div id="report-box-{page_num}" style="background:#ffffff; border:2px solid #2563eb; border-radius:10px; padding:15px; margin-bottom:10px; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
+        <div style="text-align:center; font-weight:bold; color:#2563eb; font-size:16px; margin-bottom:10px;">
             📋 BẢNG TIẾN ĐỘ BẢO TRÌ / 维修进度表
-        </h4>
-        <div style="white-space: pre-wrap; font-family: monospace, sans-serif;">{html_lines}</div>
+        </div>
+        <div>{items_html}</div>
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
-    function copyTableImage_{page_num}() {{
-        const element = document.getElementById('capture-zone-{page_num}');
+    function generateAndCopy_{page_num}() {{
+        const element = document.getElementById('report-box-{page_num}');
         html2canvas(element, {{ scale: 2 }}).then(canvas => {{
             canvas.toBlob(blob => {{
                 try {{
                     const item = new ClipboardItem({{ "image/png": blob }});
                     navigator.clipboard.write([item]).then(() => {{
-                        alert('✅ ĐÃ SAO CHÉP HÌNH BẢNG THÀNH CÔNG!\\nAnh mở Zalo/WeChat bấm Dán (Ctrl+V) để gửi đi ngay.');
+                        alert('✅ ĐÃ SAO CHÉP HÌNH BẢNG THÀNH CÔNG!\\nAnh mở Zalo hoặc WeChat nhấn Dán (Ctrl+V) để gửi.');
                     }}).catch(err => {{
-                        navigator.clipboard.writeText({json.dumps(text_content)}).then(() => {{
-                            alert('✅ ĐÃ SAO CHÉP VĂN BẢN BÁO CÁO!\\n已成功复制文本报告！');
-                        }});
+                        openImageWin(canvas);
                     }});
                 }} catch (e) {{
-                    navigator.clipboard.writeText({json.dumps(text_content)}).then(() => {{
-                        alert('✅ ĐÃ SAO CHÉP VĂN BẢN BÁO CÁO!\\n已成功复制文本报告！');
-                    }});
+                    openImageWin(canvas);
                 }}
             }});
         }});
     }}
+
+    function openImageWin(canvas) {{
+        const win = window.open("");
+        win.document.write('<p style="font-family:sans-serif; font-size:16px; font-weight:bold; color:#2563eb;">Ấn giữ vào hình bên dưới chọn "Sao chép hình ảnh" hoặc "Tải về" để gửi Zalo/WeChat:</p>');
+        win.document.write('<img src="' + canvas.toDataURL() + '" style="border:1px solid #ccc; max-width:100%;" />');
+    }}
     </script>
-    <button onclick="copyTableImage_{page_num}()" style="
+    
+    <button onclick="generateAndCopy_{page_num}()" style="
         width: 100%;
         background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
         color: white;
         border: none;
-        padding: 12px 16px;
-        font-size: 1rem;
+        padding: 12px;
+        font-size: 15px;
         font-weight: bold;
         border-radius: 8px;
         cursor: pointer;
-        box-shadow: 0 3px 8px rgba(37, 99, 235, 0.3);
-        margin-bottom: 12px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
     ">
-        📋 SAO CHÉP HÌNH BẢNG / 复制图片表格
+        📷 SAO CHÉP HÌNH BẢNG GỬI ZALO/WECHAT
     </button>
     """
-    st.components.v1.html(copy_js, height=60)
+    st.components.v1.html(custom_html, height=280, scrolling=True)
 
 # --- TIÊU ĐỀ CHÍNH ---
 st.markdown("<h3 style='text-align: center; color: #0f172a; margin-bottom: 5px;'>QUẢN LÝ BẢO TRÌ MÁY / 设备维修管理</h3>", unsafe_allow_html=True)
@@ -301,10 +294,11 @@ if "TRANG 1" in page:
                 card_style = "row-card-priority" if t["is_priority"] else "row-card"
                 prio_tag = "[ƯU TIÊN / 优先]" if t["is_priority"] else ""
 
+                # ĐÃ BỎ PHẦN GIỜ KHOANH ĐEN Ở ĐÂY
                 st.markdown(f"""
                 <div class="{card_style}">
                     <strong>{idx}/ {html.escape(t['machine'])}</strong> <span style="color:#d97706; font-weight:bold;">{prio_tag}</span><br>
-                    <span style="color: #475569; font-size: 0.95rem;">Nội dung / 内容: <strong>{html.escape(t['content'])}</strong> ({t['time']})</span>
+                    <span style="color: #475569; font-size: 0.95rem;">Nội dung / 内容: <strong>{html.escape(t['content'])}</strong></span>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -404,7 +398,6 @@ if "TRANG 1" in page:
             
             if st.form_submit_button("LƯU CÔNG VIỆC / 保存工作", use_container_width=True):
                 if t_machine.strip() and t_content.strip():
-                    # Tự động sửa chính tả và chuyển đổi sang dạng song ngữ Việt - Trung
                     bilingual_content = format_bilingual_content(t_content)
                     
                     new_item = {
