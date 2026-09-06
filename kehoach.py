@@ -3,7 +3,6 @@ from supabase import create_client, Client
 import datetime
 import pytz
 import html
-import json
 
 # --- CẤU HÌNH TRANG & GIAO DIỆN ---
 st.set_page_config(
@@ -13,57 +12,43 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# CSS Responsive cho Mobile & Máy tính
+# CSS Tối ưu cho Mobile & Máy tính
 st.markdown("""
 <style>
     .stApp {
-        background-color: #f1f5f9;
+        background-color: #f8fafc;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     
-    @media (min-width: 992px) {
-        .main .block-container {
-            max-width: 95% !important;
-            padding: 1.5rem 2rem !important;
-        }
-    }
-
     @media (max-width: 991px) {
         .main .block-container {
-            max-width: 480px !important;
-            min-height: 90vh;
-            margin: auto;
-            background-color: #ffffff;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            border-radius: 16px;
-            padding: 1rem !important;
+            max-width: 100% !important;
+            padding: 0.8rem !important;
         }
     }
 
     .row-card {
         background-color: #ffffff;
         border: 1px solid #cbd5e1;
-        border-radius: 10px;
-        padding: 12px 14px;
-        margin-bottom: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 6px;
     }
     
     .row-card-priority {
         background-color: #fef9c3 !important;
         border: 2px solid #eab308 !important;
-        border-radius: 10px;
-        padding: 12px 14px;
-        margin-bottom: 8px;
-        box-shadow: 0 2px 6px rgba(234, 179, 8, 0.2);
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 6px;
     }
 
     .stat-header {
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
         color: white;
-        border-radius: 10px;
-        padding: 12px 16px;
-        margin-bottom: 15px;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 12px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -76,7 +61,7 @@ current_time_str = now_vn.strftime("%H:%M")
 current_hour = now_vn.hour
 current_minute = now_vn.minute
 
-# --- KẾT NỐI SUPABASE & LƯU DỮ LIỆU CỐ ĐỊNH ---
+# --- KẾT NỐI SUPABASE & BỘ NHỚ ---
 @st.cache_resource
 def init_supabase():
     try:
@@ -88,7 +73,6 @@ def init_supabase():
 
 supabase = init_supabase()
 
-# Quản lý bộ nhớ tạm
 if "db" not in st.session_state:
     st.session_state.db = {
         "mechanics": 0,
@@ -112,7 +96,7 @@ def check_password(pwd):
 total_staff = st.session_state.db["mechanics"] + st.session_state.db["electricians"]
 
 # --- TIÊU ĐỀ CHÍNH ---
-st.markdown("<h2 style='text-align: center; color: #0f172a; margin-bottom: 2px;'>⚙️ QUẢN LÝ BẢO TRÌ MÁY / 设备维修管理</h2>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #0f172a; margin-bottom: 5px;'>⚙️ QUẢN LÝ BẢO TRÌ MÁY / 设备维修管理</h3>", unsafe_allow_html=True)
 
 page = st.radio(
     "",
@@ -142,8 +126,8 @@ if "TRANG 1" in page:
 
     st.markdown(f"""
     <div class="stat-header">
-        <div style="font-size: 0.9rem; opacity: 0.85;">📅 Ngày thực tế VN: <strong>{current_date_str} - {current_time_str}</strong></div>
-        <div style="font-size: 1.2rem; font-weight: bold; margin-top: 4px;">👥 Tổng nhân lực: {total_staff} Người (Cơ khí: {st.session_state.db['mechanics']} | Điện: {st.session_state.db['electricians']})</div>
+        <div style="font-size: 0.85rem; opacity: 0.85;">📅 VN: <strong>{current_date_str} - {current_time_str}</strong></div>
+        <div style="font-size: 1.1rem; font-weight: bold; margin-top: 2px;">👥 Tổng: {total_staff} Người (Cơ khí: {st.session_state.db['mechanics']} | Điện: {st.session_state.db['electricians']})</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -153,13 +137,11 @@ if "TRANG 1" in page:
         with col_t1:
             t_machine = st.text_input("Công việc và Máy / 设备与工作 *", placeholder="Ví dụ: DKW2 - Tách hộp số trục vít")
         with col_t2:
-            t_prio = st.checkbox("⭐ Máy ưu tiên (Màu vàng)")
+            t_prio = st.checkbox("⭐ Ưu tiên (Màu vàng)")
 
-        t_content = st.text_area("Nội dung chi tiết / 详细内容 *", placeholder="Mô tả công việc...")
+        t_content = st.text_area("Nội dung chi tiết / 详细内容 *", placeholder="Mô tả...")
         
-        btn_task_submit = st.form_submit_button("💾 LƯU CÔNG VIỆC / 保存工作", use_container_width=True)
-
-        if btn_task_submit:
+        if st.form_submit_button("💾 LƯU CÔNG VIỆC / 保存工作", use_container_width=True):
             if t_machine.strip() and t_content.strip():
                 new_item = {
                     "id": len(st.session_state.db["tasks"]) + 1,
@@ -182,93 +164,98 @@ if "TRANG 1" in page:
 
     if not pending_list:
         st.info("Chưa có công việc nào trong danh sách.")
-    
-    for idx, t in enumerate(pending_list, start=1):
-        card_style = "row-card-priority" if t["is_priority"] else "row-card"
-        prio_tag = "⭐ [ƯU TIÊN / 优先]" if t["is_priority"] else ""
+    else:
+        # HIỂN THỊ CÁC THẺ DANH SÁCH GỌN GÀNG
+        for idx, t in enumerate(pending_list, start=1):
+            card_style = "row-card-priority" if t["is_priority"] else "row-card"
+            prio_tag = "⭐ [ƯU TIÊN]" if t["is_priority"] else ""
 
-        # Ô CHỌN MÁY TÍCH CHỌN
-        chk_selected = st.checkbox(f"Chọn máy này / 选择此设备", key=f"select_{t['id']}")
-
-        st.markdown(f"""
-        <div class="{card_style}">
-            <div>
+            st.markdown(f"""
+            <div class="{card_style}">
                 <strong>{idx}/ {html.escape(t['machine'])}</strong> {prio_tag}<br>
                 <span style="color: #475569; font-size: 0.9rem;">📝 Nội dung: {html.escape(t['content'])} ({t['time']})</span>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-        # CÁC NÚT THAO TÁC XẾP NẰM Ở CUỐI TRANG/CUỐI THẺ
-        c_act1, c_act2, c_act3, c_act4 = st.columns([1, 1, 1, 1])
-        with c_act1:
-            if st.button("✅ Hoàn thành", key=f"done_{t['id']}", use_container_width=True):
-                t["status"] = "done"
-                st.success("Đã hoàn thành! Đã chuyển sang Trang 3.")
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("### 🛠️ THAO TÁC CÔNG VIỆC (NẰM Ở CUỐI CÁC SỐ THỨ TỰ)")
+        
+        # Ô CHỌN MÁY ĐỂ XỬ LÝ
+        task_options = {f"{idx}/ {t['machine']} - {t['content']}": t for idx, t in enumerate(pending_list, start=1)}
+        selected_task_label = st.selectbox("📌 Chọn máy cần thao tác:", list(task_options.keys()))
+        selected_task = task_options[selected_task_label]
+
+        col_act1, col_act2, col_act3, col_act4 = st.columns(4)
+        with col_act1:
+            if st.button("✅ Hoàn Thành", use_container_width=True):
+                selected_task["status"] = "done"
+                st.success("Đã hoàn thành! Chuyển sang Trang 3.")
                 st.rerun()
-        with c_act2:
-            if st.button("🔄 Giao Ca", key=f"ho_{t['id']}", use_container_width=True):
-                st.session_state[f"pop_handoff_{t['id']}"] = True
-        with c_act3:
-            if st.button("✏️ Sửa", key=f"ed_{t['id']}", use_container_width=True):
-                st.session_state[f"pop_edit_{t['id']}"] = True
-        with c_act4:
-            if st.button("🗑️ Xóa", key=f"del_{t['id']}", use_container_width=True):
-                st.session_state[f"pop_del_{t['id']}"] = True
 
-        if st.session_state.get(f"pop_handoff_{t['id']}", False):
-            with st.form(f"f_ho_{t['id']}", clear_on_submit=True):
-                st.markdown("👉 **ĐIỀN TIẾN ĐỘ & CÔNG VIỆC TIẾP THEO**")
-                progress_txt = st.text_input("Cột Tiến Độ *", placeholder="Ví dụ: Đã làm 80%")
-                next_task_txt = st.text_area("Công Việc Tiếp Theo *", placeholder="Ví dụ: Ca sau tiếp tục lắp ráp")
-                
+        with col_act2:
+            if st.button("🔄 Giao Ca", use_container_width=True):
+                st.session_state["show_pop_handoff"] = True
+
+        with col_act3:
+            if st.button("✏️ Sửa", use_container_width=True):
+                st.session_state["show_pop_edit"] = True
+
+        with col_act4:
+            if st.button("🗑️ Xóa", use_container_width=True):
+                st.session_state["show_pop_del"] = True
+
+        # POPUP FORM THAO TÁC
+        if st.session_state.get("show_pop_handoff", False):
+            with st.form("form_pop_handoff"):
+                st.markdown(f"👉 **GIAO CA CHO MÁY: {selected_task['machine']}**")
+                progress_txt = st.text_input("Tiến Độ Hiện Tại *", placeholder="Ví dụ: Đã làm 80%")
+                next_task_txt = st.text_area("Kế Hoạch Ca Sau *", placeholder="Ví dụ: Tiếp tục lắp ráp")
                 if st.form_submit_button("Xác Nhận Bàn Giao"):
                     if progress_txt.strip() and next_task_txt.strip():
-                        t["status"] = "handoff"
+                        selected_task["status"] = "handoff"
                         st.session_state.db["handoffs"].append({
                             "id": len(st.session_state.db["handoffs"]) + 1,
-                            "machine": t["machine"],
+                            "machine": selected_task["machine"],
                             "content": f"[Tiến độ: {progress_txt}] - Kế hoạch tiếp: {next_task_txt}",
                             "sender": "Chuyển ca",
                             "time": current_time_str
                         })
-                        st.session_state[f"pop_handoff_{t['id']}"] = False
-                        st.success("✅ Đã chuyển sang Trang 3.")
+                        st.session_state["show_pop_handoff"] = False
+                        st.success("✅ Đã bàn giao sang Trang 3!")
                         st.rerun()
                     else:
-                        st.error("❌ Bắt buộc điền đầy đủ các mục (*)")
+                        st.error("Bắt buộc điền đầy đủ (*)")
 
-        if st.session_state.get(f"pop_edit_{t['id']}", False):
-            with st.form(f"f_ed_{t['id']}"):
+        if st.session_state.get("show_pop_edit", False):
+            with st.form("form_pop_edit"):
+                st.markdown(f"✏️ **SỬA CÔNG VIỆC: {selected_task['machine']}**")
                 pwd_in = st.text_input("Mật khẩu (230) *", type="password")
-                e_mach = st.text_input("Tên Máy", value=t["machine"])
-                e_cont = st.text_area("Nội dung", value=t["content"])
-                e_prio = st.checkbox("Ưu tiên", value=t["is_priority"])
-                
+                e_mach = st.text_input("Tên Máy", value=selected_task["machine"])
+                e_cont = st.text_area("Nội dung", value=selected_task["content"])
+                e_prio = st.checkbox("Ưu tiên", value=selected_task["is_priority"])
                 if st.form_submit_button("Lưu Thay Đổi"):
                     if check_password(pwd_in):
-                        t["machine"] = e_mach
-                        t["content"] = e_cont
-                        t["is_priority"] = e_prio
-                        st.session_state[f"pop_edit_{t['id']}"] = False
-                        st.success("Đã sửa!")
+                        selected_task["machine"] = e_mach
+                        selected_task["content"] = e_cont
+                        selected_task["is_priority"] = e_prio
+                        st.session_state["show_pop_edit"] = False
+                        st.success("Đã cập nhật!")
                         st.rerun()
                     else:
-                        st.error("Sai mật khẩu!")
+                        st.error("Mật khẩu không đúng!")
 
-        if st.session_state.get(f"pop_del_{t['id']}", False):
-            with st.form(f"f_dl_{t['id']}"):
+        if st.session_state.get("show_pop_del", False):
+            with st.form("form_pop_del"):
+                st.markdown(f"🗑️ **XÓA CÔNG VIỆC: {selected_task['machine']}**")
                 pwd_in2 = st.text_input("Mật khẩu (230) *", type="password")
                 if st.form_submit_button("Xác Nhận Xóa"):
                     if check_password(pwd_in2):
-                        st.session_state.db["tasks"].remove(t)
-                        st.session_state[f"pop_del_{t['id']}"] = False
+                        st.session_state.db["tasks"].remove(selected_task)
+                        st.session_state["show_pop_del"] = False
                         st.success("Đã xóa!")
                         st.rerun()
                     else:
-                        st.error("Sai mật khẩu!")
-
-        st.markdown("<hr style='margin: 8px 0; border: none; border-top: 1px dashed #cbd5e1;'>", unsafe_allow_html=True)
+                        st.error("Mật khẩu không đúng!")
 
 # ==========================================
 # TRANG 2: DỪNG MÁY SỬA
@@ -327,13 +314,11 @@ elif "TRANG 2" in page:
                     "sender": "Thợ sửa",
                     "time": current_time_str
                 })
-                st.success("✅ Đã sửa xong! Đã chuyển dữ liệu sang Trang 3.")
+                st.success("✅ Đã sửa xong! Chuyển sang Trang 3.")
                 st.rerun()
 
-        st.markdown("<hr style='margin: 8px 0; border: none; border-top: 1px dashed #cbd5e1;'>", unsafe_allow_html=True)
-
 # ==========================================
-# TRANG 3: GIAO CA (TỰ ĐỘNG XÓA 18:00 & 05:00)
+# TRANG 3: GIAO CA
 # ==========================================
 elif "TRANG 3" in page:
     st.subheader("📋 Giao Ca & Chủ Quản Xem / 交接班与主管查看")
@@ -367,7 +352,7 @@ elif "TRANG 3" in page:
 
     done_tasks = [t for t in st.session_state.db["tasks"] if t["status"] == "done"]
     if done_tasks:
-        st.markdown("#### ✅ Công việc đã hoàn thành trong ca")
+        st.markdown("#### ✅ Công việc đã hoàn thành")
         for dt in done_tasks:
             st.markdown(f"""
             <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px;">
@@ -381,56 +366,61 @@ elif "TRANG 3" in page:
 
     if not h_list and not done_tasks:
         st.info("Chưa có nội dung bàn giao ca.")
-
-    for idx, h in enumerate(h_list, start=1):
-        st.markdown(f"""
-        <div class="row-card">
-            <div>
+    else:
+        # HIỂN THỊ DANH SÁCH GIAO CA
+        for idx, h in enumerate(h_list, start=1):
+            st.markdown(f"""
+            <div class="row-card">
                 <strong>{idx}/ {html.escape(h['machine'])}</strong> (Người giao: {html.escape(h.get('sender', 'NV'))}) - <span style="color: #64748b; font-size: 0.85rem;">⏱️ {h['time']}</span><br>
                 <span style="color: #1e293b; font-size: 0.95rem;">📝 {html.escape(h['content'])}</span>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-        col_he, col_hd = st.columns(2)
-        with col_he:
-            if st.button("✏️ Sửa (Cần 230)", key=f"he_{h['id']}", use_container_width=True):
-                st.session_state[f"pop_he_{h['id']}"] = True
-        with col_hd:
-            if st.button("🗑️ Xóa (Cần 230)", key=f"hd_{h['id']}", use_container_width=True):
-                st.session_state[f"pop_hd_{h['id']}"] = True
+        if h_list:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("### 🛠️ THAO TÁC GIAO CA (NẰM Ở CUỐI CÁC SỐ THỨ TỰ)")
+            
+            ho_options = {f"{idx}/ {h['machine']} - {h['content']}": h for idx, h in enumerate(h_list, start=1)}
+            selected_ho_label = st.selectbox("📌 Chọn mục giao ca cần thao tác:", list(ho_options.keys()))
+            selected_ho = ho_options[selected_ho_label]
 
-        if st.session_state.get(f"pop_he_{h['id']}", False):
-            with st.form(f"fh_e_{h['id']}"):
-                pw_e = st.text_input("Mật khẩu (230) *", type="password")
-                nh_m = st.text_input("Tên máy", value=h["machine"])
-                nh_c = st.text_area("Nội dung", value=h["content"])
-                if st.form_submit_button("Lưu sửa"):
-                    if check_password(pw_e):
-                        h["machine"] = nh_m
-                        h["content"] = nh_c
-                        st.session_state[f"pop_he_{h['id']}"] = False
-                        st.success("Đã sửa!")
-                        st.rerun()
-                    else:
-                        st.error("Sai mật khẩu!")
+            col_he, col_hd = st.columns(2)
+            with col_he:
+                if st.button("✏️ Sửa (Cần mật khẩu 230)", use_container_width=True):
+                    st.session_state["show_pop_ho_edit"] = True
+            with col_hd:
+                if st.button("🗑️ Xóa (Cần mật khẩu 230)", use_container_width=True):
+                    st.session_state["show_pop_ho_del"] = True
 
-        if st.session_state.get(f"pop_hd_{h['id']}", False):
-            with st.form(f"fh_d_{h['id']}"):
-                pw_d = st.text_input("Mật khẩu (230) *", type="password")
-                if st.form_submit_button("Xác nhận xóa"):
-                    if check_password(pw_d):
-                        st.session_state.db["handoffs"].remove(h)
-                        st.session_state[f"pop_hd_{h['id']}"] = False
-                        st.success("Đã xóa!")
-                        st.rerun()
-                    else:
-                        st.error("Sai mật khẩu!")
+            if st.session_state.get("show_pop_ho_edit", False):
+                with st.form("form_ho_edit"):
+                    pw_e = st.text_input("Mật khẩu (230) *", type="password")
+                    nh_m = st.text_input("Tên máy", value=selected_ho["machine"])
+                    nh_c = st.text_area("Nội dung", value=selected_ho["content"])
+                    if st.form_submit_button("Lưu sửa"):
+                        if check_password(pw_e):
+                            selected_ho["machine"] = nh_m
+                            selected_ho["content"] = nh_c
+                            st.session_state["show_pop_ho_edit"] = False
+                            st.success("Đã cập nhật!")
+                            st.rerun()
+                        else:
+                            st.error("Sai mật khẩu!")
 
-        st.markdown("<hr style='margin: 8px 0; border: none; border-top: 1px dashed #cbd5e1;'>", unsafe_allow_html=True)
+            if st.session_state.get("show_pop_ho_del", False):
+                with st.form("form_ho_del"):
+                    pw_d = st.text_input("Mật khẩu (230) *", type="password")
+                    if st.form_submit_button("Xác nhận xóa"):
+                        if check_password(pw_d):
+                            st.session_state.db["handoffs"].remove(selected_ho)
+                            st.session_state["show_pop_ho_del"] = False
+                            st.success("Đã xóa!")
+                            st.rerun()
+                        else:
+                            st.error("Sai mật khẩu!")
 
 # ==========================================
-# BÁO CÁO TỔNG HỢP HIỆN Ở TẤT CẢ CÁC TRANG
+# BÁO CÁO TỔNG HỢP & NÚT COPY
 # ==========================================
 st.divider()
 st.markdown("### 📸 BÁO CÁO TỔNG HỢP GỬI NHÓM / 综合报告发群")
@@ -448,7 +438,7 @@ if st.session_state.db["tasks"]:
         st_flag = "✅[Xong]" if task["status"] == "done" else ("🔄[Giao ca]" if task["status"] == "handoff" else "⏳[Đang làm]")
         report_text += f"{i}/ {p_flag}{task['machine']} - {task['content']} ({st_flag})\n"
 else:
-    report_text += "(Khởi tạo / Chưa có dữ liệu)\n"
+    report_text += "(Chưa có dữ liệu)\n"
 
 report_text += "\n2️⃣ **MÁY DỪNG SỬA (TRANG 2) / 停机维修:**\n"
 if st.session_state.db["repairs"]:
@@ -465,32 +455,5 @@ if st.session_state.db["handoffs"]:
 else:
     report_text += "(Chưa có nội dung giao ca)\n"
 
-st.text_area("Văn bản báo cáo tổng hợp / 报告文本", value=report_text, height=180)
-
-copy_js = f"""
-<script>
-function copyTextToClip() {{
-    const text = {json.dumps(report_text)};
-    navigator.clipboard.writeText(text).then(function() {{
-        alert('✅ ĐÃ SAO CHÉP BÁO CÁO THÀNH CÔNG!\\nBây giờ bạn có thể mở Zalo/WeChat và dán (Ctrl+V) vào nhóm.');
-    }}, function(err) {{
-        alert('❌ Lỗi sao chép: ' + err);
-    }});
-}}
-</script>
-<button onclick="copyTextToClip()" style="
-    width: 100%;
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    color: white;
-    border: none;
-    padding: 14px 20px;
-    font-size: 1.05rem;
-    font-weight: bold;
-    border-radius: 10px;
-    cursor: pointer;
-    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
-">
-📋 SAO CHÉP BÁO CÁO GỬI NHÓM (BỘ NHỚ TẠM) / 复制内容发群
-</button>
-"""
-st.components.v1.html(copy_js, height=80)
+# Ô VĂN BẢN TÍCH HỢP NÚT COPY TỰ ĐỘNG CHUẨN ĐIỆN THOẠI
+st.text_area("Báo cáo hoàn chỉnh (Bấm nút sao chép bên phải góc trên ô này):", value=report_text, height=220)
