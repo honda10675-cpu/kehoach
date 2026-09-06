@@ -14,21 +14,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Thêm CSS cho giao diện
 st.markdown("""
 <style>
     .stApp {
         background-color: #f8fafc;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    
-    @media (max-width: 991px) {
-        .main .block-container {
-            max-width: 100% !important;
-            padding: 0.8rem !important;
-        }
-    }
-
     .row-card {
         background-color: #ffffff;
         border: 1px solid #cbd5e1;
@@ -36,7 +27,6 @@ st.markdown("""
         padding: 10px 12px;
         margin-bottom: 6px;
     }
-    
     .row-card-priority {
         background-color: #fef9c3 !important;
         border: 2px solid #eab308 !important;
@@ -47,7 +37,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH THUẬT NGỮ BẢO TRÌ ---
+# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH ---
 DICT_SPELL_TRANS = [
     (r"\bthay\b", "Thay", "更换"),
     (r"\btach\b|\btách\b", "Tách", "拆卸"),
@@ -113,18 +103,19 @@ current_time_str = now_vn.strftime("%H:%M")
 current_hour = now_vn.hour
 current_minute = now_vn.minute
 
-# --- KHỞI TẠO VÀ LƯU TRỮ DỮ LIỆU CHÍNH XÁC ---
-def init_supabase():
+# --- KHỞI TẠO VÀ LƯU TRỮ DỮ LIỆU ---
+@st.cache_resource
+def get_supabase_client():
     try:
         url = st.secrets.get("SUPABASE_URL")
         key = st.secrets.get("SUPABASE_KEY")
         if url and key:
             return create_client(url, key)
-    except Exception:
-        pass
+    except Exception as e:
+        st.error(f"Lỗi cấu hình Supabase: {e}")
     return None
 
-supabase = init_supabase()
+supabase = get_supabase_client()
 
 def load_data():
     if supabase:
@@ -132,8 +123,8 @@ def load_data():
             res = supabase.table("app_data").select("*").eq("id", 1).execute()
             if res.data and len(res.data) > 0:
                 return res.data[0]["content"]
-        except Exception:
-            pass
+        except Exception as e:
+            st.error(f"Không thể đọc dữ liệu từ Supabase: {e}")
     return {"tasks": [], "repairs": [], "handoffs": [], "last_reset": ""}
 
 def save_data(data):
@@ -141,16 +132,22 @@ def save_data(data):
     if supabase:
         try:
             supabase.table("app_data").upsert({"id": 1, "content": data}).execute()
-        except Exception:
-            pass
+            return True
+        except Exception as e:
+            st.error(f"⚠️ Không thể lưu xuống Supabase: {e}")
+            return False
+    else:
+        st.warning("⚠️ Chưa kết nối Supabase, dữ liệu tạm chỉ lưu trong phiên làm việc hiện tại!")
+        return True
 
-# Bắt buộc đọc từ CSDL mỗi khi F5 hoặc mở ứng dụng
-st.session_state.db = load_data()
+# Bắt buộc tải dữ liệu vào session nếu chưa có
+if "db" not in st.session_state:
+    st.session_state.db = load_data()
 
 if "page1_authenticated" not in st.session_state:
     st.session_state.page1_authenticated = False
 
-# TỰ ĐỘNG XÓA TRANG 3 VÀO LÚC 05:00 VÀ 18:00
+# Xóa trang 3 định kỳ
 reset_key = f"{current_date_str}_{18 if current_hour >= 18 else (5 if current_hour >= 5 else 0)}"
 if st.session_state.db.get("last_reset") != reset_key:
     if (current_hour == 5 and current_minute < 30) or (current_hour == 18 and current_minute < 30):
@@ -161,7 +158,7 @@ if st.session_state.db.get("last_reset") != reset_key:
 def check_password(pwd):
     return pwd == "230"
 
-# --- BÁO CÁO SONG NGỮ TRANG 1 ---
+# --- BÁO CÁO SONG NGỮ ---
 report_text_p1 = f"""BÁO CÁO CÔNG VIỆC BẢO TRÌ / 维修工作报告
 Ngày / 日期: {current_date_str} - {current_time_str}
 
@@ -175,7 +172,6 @@ if st.session_state.db.get("tasks"):
 else:
     report_text_p1 += "(Chưa có dữ liệu / 暂无数据)\n"
 
-# --- BÁO CÁO SONG NGỮ ĐẦY ĐỦ ---
 report_text_full = report_text_p1 + f"""
 MÁY DỪNG SỬA (TRANG 2) / 停机维修:
 """
@@ -422,9 +418,9 @@ if "TRANG 1" in page:
                     }
                     if "tasks" not in st.session_state.db:
                         st.session_state.db["tasks"] = []
+                    
                     st.session_state.db["tasks"].append(new_item)
                     save_data(st.session_state.db)
-                    st.success("THÔNG BÁO GỬI THÀNH CÔNG / 发送成功！")
                     st.rerun()
                 else:
                     st.error("Vui lòng điền đầy đủ thông tin (*) / 请填写完整")
@@ -452,7 +448,6 @@ elif "TRANG 2" in page:
                     "time": current_time_str
                 })
                 save_data(st.session_state.db)
-                st.success("THÔNG BÁO GỬI THÀNH CÔNG / 发送成功！")
                 st.rerun()
             else:
                 st.error("Bắt buộc điền thông tin (*) / 请填写完整")
@@ -491,7 +486,6 @@ elif "TRANG 2" in page:
                     "time": current_time_str
                 })
                 save_data(st.session_state.db)
-                st.success("Đã sửa xong! Chuyển sang Trang 3 / 已修好，移至第3页！")
                 st.rerun()
 
 # TRANG 3: GIAO CA
@@ -523,7 +517,6 @@ elif "TRANG 3" in page:
                     "time": current_time_str
                 })
                 save_data(st.session_state.db)
-                st.success("THÔNG BÁO GỬI THÀNH CÔNG / 发送成功！")
                 st.rerun()
             else:
                 st.error("Vui lòng nhập đầy đủ (*) / 请填写完整")
@@ -582,7 +575,6 @@ elif "TRANG 3" in page:
                             selected_ho["content"] = format_bilingual_content(nh_c)
                             save_data(st.session_state.db)
                             st.session_state["show_pop_ho_edit"] = False
-                            st.success("Đã cập nhật / 已更新!")
                             st.rerun()
                         else:
                             st.error("Sai mật khẩu / 密码错误!")
@@ -595,7 +587,6 @@ elif "TRANG 3" in page:
                             st.session_state.db["handoffs"].remove(selected_ho)
                             save_data(st.session_state.db)
                             st.session_state["show_pop_ho_del"] = False
-                            st.success("Đã xóa / 已删除!")
                             st.rerun()
                         else:
                             st.error("Sai mật khẩu / 密码错误!")
