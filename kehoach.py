@@ -49,6 +49,10 @@ DICT_SPELL_TRANS = [
     (r"\bdung may\b|\bdừng máy\b", "Dừng máy", "停机"),
     (r"\bxu ly\b|\bxử lý\b", "Xử lý", "处理"),
     (r"\blam\b|\blàm\b", "Làm", "做"),
+    (r"\bao lo\b|\báo lô\b", "áo lô", "辊套"),
+    (r"\blo\b|\blô\b", "lô", "压辊"),
+    (r"\bkeo gian\b|\bkéo giản\b|\bkéo giãn\b", "kéo giãn", "拉伸"),
+    (r"\bkeo\b|\bkéo\b", "kéo", "牵引"),
     (r"\bdau khuôn\b|\bdau khuon\b|\bđầu khuôn\b", "đầu khuôn", "模头"),
     (r"\bkhuon\b|\bkhuôn\b", "khuôn", "模具"),
     (r"\bvan giam ap\b|\bvan giảm áp\b", "van giảm áp", "减压阀"),
@@ -84,6 +88,10 @@ DICT_SPELL_TRANS = [
 def auto_correct_and_translate(text):
     if not text:
         return "", ""
+    # Nếu đã chứa ký tự tiếng Trung hoặc dấu / phân cách song ngữ thì giữ nguyên
+    if "/" in text or re.search(r'[\u4e00-\u9fff]', text):
+        return text.strip(), ""
+        
     viet_text = text.strip()
     zh_parts = []
     for pattern, vi_correct, zh_word in DICT_SPELL_TRANS:
@@ -93,10 +101,12 @@ def auto_correct_and_translate(text):
                 zh_parts.append(zh_word)
 
     viet_text = viet_text[0].upper() + viet_text[1:] if len(viet_text) > 0 else viet_text
-    zh_text = " ".join(zh_parts) if zh_parts else "处理"
+    zh_text = " ".join(zh_parts)
     return viet_text, zh_text
 
 def format_bilingual_content(raw_text):
+    if not raw_text:
+        return ""
     vi_cor, zh_tr = auto_correct_and_translate(raw_text)
     if zh_tr:
         return f"{vi_cor} / {zh_tr}"
@@ -163,7 +173,6 @@ def check_password(pwd):
 
 # --- HÀM TẠO BÁO CÁO CHO TỪNG YÊU CẦU ---
 def get_report_text(report_type):
-    # Dùng chung cho TRANG 1 & TRANG 2 (Ghép Trang 1 và Trang 2)
     if report_type in [1, 2]:
         text = f"BÁO CÁO CÔNG VIỆC BẢO TRÌ / 维修工作报告\n"
         text += f"Ngày / 日期: {current_date_str} - {current_time_str}\n\n"
@@ -174,7 +183,7 @@ def get_report_text(report_type):
             for i, task in enumerate(tasks, start=1):
                 p_flag = "[ƯU TIÊN / 优先] " if task.get("is_priority") else ""
                 st_flag = "[Đã xong / 已完成]" if task.get("status") == "done" else ("[Đã giao ca / 已交接]" if task.get("status") == "handoff" else "[Đang làm / 进行中]")
-                text += f"{i}/ {p_flag}{task['machine']} - {task['content']} ({st_flag})\n"
+                text += f"{i}/ {task['machine']} - {task['content']} ({st_flag})\n"
         else:
             text += "(Chưa có dữ liệu / 暂无数据)\n"
 
@@ -188,11 +197,10 @@ def get_report_text(report_type):
             text += "(Không có máy dừng sửa / 无停机维修)\n"
         return text
 
-    # Dùng riêng cho TRANG 3 (Độc lập Trang 3)
     elif report_type == 3:
         text = f"BÁO CÁO GIAO CA (TRANG 3) / 交接班报告\n"
         text += f"Ngày / 日期: {current_date_str} - {current_time_str}\n\n"
-        text += "NỘI DUNG GIAO CA / 交接班事项:\n"
+        text += "NỘI DUNG GIAO CA / 交接事项:\n"
         
         handoffs = st.session_state.db.get("handoffs", [])
         if handoffs:
@@ -373,7 +381,7 @@ if "TRANG 1" in page:
                     e_prio = st.checkbox("Ưu tiên / 优先", value=selected_task.get("is_priority", False))
                     if st.form_submit_button("Lưu Thay Đổi / 保存"):
                         if check_password(pwd_in):
-                            selected_task["machine"] = e_mach
+                            selected_task["machine"] = format_bilingual_content(e_mach)
                             selected_task["content"] = format_bilingual_content(e_cont)
                             selected_task["is_priority"] = e_prio
                             save_data(st.session_state.db)
@@ -400,18 +408,20 @@ if "TRANG 1" in page:
             st.markdown("### Nhập Công Việc Mới / 添加新工作")
             col_t1, col_t2 = st.columns([2, 1])
             with col_t1:
-                t_machine = st.text_input("Công việc và Máy / 设备与工作 *", placeholder="Ví dụ: DKW2")
+                t_machine = st.text_input("Công việc và Máy / 设备与工作 *", placeholder="Ví dụ: PE21 Ráp áo lô kéo giản 2")
             with col_t2:
                 t_prio = st.checkbox("Ưu tiên / 优先")
 
-            t_content = st.text_area("Nội dung chi tiết / 详细内容 *", placeholder="Ví dụ: thay dau khuon PE1")
+            t_content = st.text_area("Nội dung chi tiết / 详细内容 *", placeholder="Ví dụ: Thay dau khuon PE1")
             
             if st.form_submit_button("LƯU CÔNG VIỆC / 保存工作", use_container_width=True):
                 if t_machine.strip() and t_content.strip():
+                    bilingual_machine = format_bilingual_content(t_machine)
                     bilingual_content = format_bilingual_content(t_content)
+                    
                     new_item = {
                         "id": len(st.session_state.db.get("tasks", [])) + 1,
-                        "machine": t_machine.strip(),
+                        "machine": bilingual_machine,
                         "content": bilingual_content,
                         "is_priority": t_prio,
                         "status": "pending",
@@ -440,10 +450,11 @@ elif "TRANG 2" in page:
             if r_machine.strip() and r_content.strip():
                 if "repairs" not in st.session_state.db:
                     st.session_state.db["repairs"] = []
+                bilingual_r_machine = format_bilingual_content(r_machine)
                 bilingual_r_content = format_bilingual_content(r_content)
                 st.session_state.db["repairs"].append({
                     "id": len(st.session_state.db["repairs"]) + 1,
-                    "machine": r_machine.strip(),
+                    "machine": bilingual_r_machine,
                     "content": bilingual_r_content,
                     "is_done": False,
                     "time": current_time_str
@@ -509,10 +520,11 @@ elif "TRANG 3" in page:
             if h_sender.strip() and h_machine.strip() and h_content.strip():
                 if "handoffs" not in st.session_state.db:
                     st.session_state.db["handoffs"] = []
+                bilingual_h_machine = format_bilingual_content(h_machine)
                 bilingual_h_content = format_bilingual_content(h_content)
                 st.session_state.db["handoffs"].append({
                     "id": len(st.session_state.db["handoffs"]) + 1,
-                    "machine": h_machine.strip(),
+                    "machine": bilingual_h_machine,
                     "sender": h_sender.strip(),
                     "content": bilingual_h_content,
                     "time": current_time_str
@@ -572,7 +584,7 @@ elif "TRANG 3" in page:
                     nh_c = st.text_area("Nội dung / 内容", value=selected_ho["content"])
                     if st.form_submit_button("Lưu sửa / 保存"):
                         if check_password(pw_e):
-                            selected_ho["machine"] = nh_m
+                            selected_ho["machine"] = format_bilingual_content(nh_m)
                             selected_ho["content"] = format_bilingual_content(nh_c)
                             save_data(st.session_state.db)
                             st.session_state["show_pop_ho_edit"] = False
