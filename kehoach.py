@@ -47,30 +47,47 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH THUẬT NGỮ BẢO TRÌ ---
+# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH THUẬT NGỮ BẢO TRÌ MỞ RỘNG ---
 DICT_SPELL_TRANS = [
+    # Thao tác & hành động
+    (r"\bthay\b", "Thay", "更换"),
     (r"\btach\b|\btách\b", "Tách", "拆卸"),
+    (r"\bsua\b|\bsửa\b", "Sửa", "维修"),
+    (r"\blech\b|\blệch\b", "lệch", "偏位"),
+    (r"\blap\b|\blắp\b", "Lắp", "安装"),
+    (r"\bve sinh\b|\bvệ sinh\b", "Vệ sinh", "清理"),
+    (r"\bcan chinh\b|\bcăn chỉnh\b", "Căn chỉnh", "校准"),
+    (r"\bdung may\b|\bdừng máy\b", "Dừng máy", "停机"),
+    (r"\bxu ly\b|\bxử lý\b", "Xử lý", "处理"),
+    
+    # Chi tiết linh kiện & thiết bị
+    (r"\bdau khuôn\b|\bdau khuon\b|\bđầu khuôn\b", "đầu khuôn", "模头"),
+    (r"\bkhuon\b|\bkhuôn\b", "khuôn", "模具"),
+    (r"\bvan giam ap\b|\bvan giảm áp\b", "van giảm áp", "减压阀"),
+    (r"\bhoi nong\b|\bhơi nóng\b", "hơi nóng", "热蒸汽"),
+    (r"\bbon nuoc nong\b|\bbồn nước nóng\b", "bồn nước nóng", "热水箱"),
+    (r"\bbac dan\b|\bvong bi\b|\bbạc đạn\b|\bvòng bi\b", "bạc đạn", "轴承"),
+    (r"\bcot dao\b|\bcốt dao\b|\btruc dao\b|\btrục dao\b", "cốt dao", "刀轴"),
+    (r"\bthu cuon\b|\bthu cuộn\b|\bcuon\b|\bcuộn\b", "thu cuộn", "收卷"),
     (r"\bhop so\b|\bhộp số\b", "hộp số", "齿轮箱"),
     (r"\btruc vit\b|\btrục vít\b", "trục vít", "螺杆"),
-    (r"\bthay\b", "Thay", "更换"),
     (r"\btruc\b|\btrục\b", "trục", "轴"),
     (r"\btach nuoc\b|\btách nước\b", "tách nước", "脱水"),
-    (r"\bduoi\b|\bdưới\b", "dưới", "下"),
-    (r"\btren\b|\btrên\b", "trên", "上"),
-    (r"\bsua\b|\bsửa\b", "Sửa", "维修"),
-    (r"\bbac dan\b|\bvong bi\b|\bbạc đạn\b|\bvòng bi\b", "bạc đạn", "轴承"),
     (r"\bbien tan\b|\bbiến tần\b", "biến tần", "变频器"),
     (r"\bdong co\b|\bmotor\b|\bđộng cơ\b", "động cơ", "电机"),
     (r"\bxilanh\b|\bxi lanh\b", "xi lanh", "气缸"),
-    (r"\bday curoa\b|\bDây curoa\b|\bcu roa\b", "dây curoa", "皮带"),
+    (r"\bday curoa\b|\bcu roa\b", "dây curoa", "皮带"),
     (r"\bcam bien\b|\bcảm biến\b", "cảm biến", "传感器"),
-    (r"\bve sinh\b|\bvệ sinh\b", "Vệ sinh", "清理"),
-    (r"\blap\b|\blắp\b", "Lắp", "安装"),
-    (r"\bcan chinh\b|\bcăn chỉnh\b", "Căn chỉnh", "校准"),
     (r"\bmay dun\b|\bmáy đùn\b", "máy đùn", "挤出机"),
     (r"\bmay ben\b|\bmáy bện\b", "máy bện", "绞线机"),
     (r"\bro le\b|\brơ le\b", "rơ le", "继电器"),
     (r"\bvan tu\b|\bvan từ\b", "van từ", "电磁阀"),
+    
+    # Vị trí & Mô tả
+    (r"\bduoi\b|\bdưới\b", "dưới", "下"),
+    (r"\btren\b|\btrên\b", "trên", "上"),
+    (r"\bvi tri\b|\bvị trí\b", "vị trí", "位置"),
+    (r"\bnhiet do\b|\bnhiệt độ\b", "nhiệt độ", "温度"),
 ]
 
 def auto_correct_and_translate(text):
@@ -105,7 +122,7 @@ current_time_str = now_vn.strftime("%H:%M")
 current_hour = now_vn.hour
 current_minute = now_vn.minute
 
-# --- KẾT NỐI SUPABASE ---
+# --- KẾT NỐI SUPABASE CƠ SỞ DỮ LIỆU DÙNG CHUNG ---
 @st.cache_resource
 def init_supabase():
     try:
@@ -185,7 +202,7 @@ if st.session_state.db.get("handoffs"):
 else:
     report_text_full += "(Chưa có nội dung giao ca / 暂无交接事项)\n"
 
-# --- RENDER NÚT SAO CHÉP VÀ BẢNG (ẨN BẢNG Ở TRANG 2 VÀ 3) ---
+# --- RENDER NÚT SAO CHÉP CHUẨN ---
 def render_copy_button(page_num):
     text_content = report_text_p1 if page_num == 1 else report_text_full
     lines = [line for line in text_content.strip().split("\n") if line]
@@ -198,7 +215,6 @@ def render_copy_button(page_num):
         else:
             items_html += f'<div style="padding:4px 0; color:#334155; font-size:14px; border-bottom:1px dashed #f1f5f9;">{escaped}</div>'
 
-    # Chỉ hiển thị khung preview nếu là Trang 1
     box_display = "block" if page_num == 1 else "none"
 
     custom_html = f"""
@@ -213,10 +229,10 @@ def render_copy_button(page_num):
     <script>
     function generateAndCopy_{page_num}() {{
         const element = document.getElementById('report-box-{page_num}');
-        element.style.display = 'block'; // Tạm thời hiện để chụp ảnh nếu đang ẩn
+        element.style.display = 'block';
         html2canvas(element, {{ scale: 2 }}).then(canvas => {{
             if ("{box_display}" === "none") {{
-                element.style.display = 'none'; // Khôi phục lại trạng thái ẩn
+                element.style.display = 'none';
             }}
             canvas.toBlob(blob => {{
                 try {{
@@ -401,7 +417,7 @@ if "TRANG 1" in page:
             with col_t2:
                 t_prio = st.checkbox("Ưu tiên / 优先")
 
-            t_content = st.text_area("Nội dung chi tiết / 详细内容 *", placeholder="Ví dụ: tach hop so truc vit")
+            t_content = st.text_area("Nội dung chi tiết / 详细内容 *", placeholder="Ví dụ: thay dau khuon PE1")
             
             if st.form_submit_button("LƯU CÔNG VIỆC / 保存工作", use_container_width=True):
                 if t_machine.strip() and t_content.strip():
@@ -434,8 +450,8 @@ elif "TRANG 2" in page:
 
     with st.form("form_repair", clear_on_submit=True):
         st.markdown("### Báo Dừng Máy Sửa Mới / 登记停机维修")
-        r_machine = st.text_input("Tên Máy Dừng / 停机设备 *", placeholder="Ví dụ: PE59")
-        r_content = st.text_area("Sự cố & Nội dung sửa / 故障与维修内容 *", placeholder="Ví dụ: thay truc tach nuoc duoi")
+        r_machine = st.text_input("Tên Máy Dừng / 停机设备 *", placeholder="Ví dụ: PE66")
+        r_content = st.text_area("Sự cố & Nội dung sửa / 故障与维修内容 *", placeholder="Ví dụ: dung may thay van giam ap hoi nong bon nuoc nong")
         
         if st.form_submit_button("BÁO DỪNG MÁY / 提交停机", use_container_width=True):
             if r_machine.strip() and r_content.strip():
@@ -512,7 +528,7 @@ elif "TRANG 3" in page:
             h_sender = st.text_input("Người giao / 交接人 *", placeholder="Tên NV")
             h_machine = st.text_input("Tên máy / 设备 *", placeholder="Tên máy")
         with col_h2:
-            h_content = st.text_area("Nội dung bàn giao / 交接内容 *", placeholder="Nội dung...")
+            h_content = st.text_area("Nội dung bàn giao / 交接内容 *", placeholder="Ví dụ: thay bac dan cot dao")
 
         if st.form_submit_button("GỬI BÀN GIAO CA / 提交交接", use_container_width=True):
             if h_sender.strip() and h_machine.strip() and h_content.strip():
