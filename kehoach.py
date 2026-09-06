@@ -37,7 +37,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH (ĐÃ BỔ SUNG ĐẦY ĐỦ) ---
+# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH ---
 DICT_SPELL_TRANS = [
     (r"\bthay\b", "Thay", "更换"),
     (r"\btach\b|\btách\b", "Tách", "拆卸"),
@@ -411,7 +411,8 @@ if "TRANG 1" in page:
                         st.session_state.db["tasks"] = []
                     
                     st.session_state.db["tasks"].append(new_item)
-                    save_data(st.session_state.db)
+                    if save_data(st.session_state.db):
+                        st.rerun()
                 else:
                     st.error("Vui lòng điền đầy đủ thông tin (*) / 请填写完整")
 
@@ -437,7 +438,8 @@ elif "TRANG 2" in page:
                     "is_done": False,
                     "time": current_time_str
                 })
-                save_data(st.session_state.db)
+                if save_data(st.session_state.db):
+                    st.rerun()
             else:
                 st.error("Bắt buộc điền thông tin (*) / 请填写完整")
 
@@ -505,7 +507,8 @@ elif "TRANG 3" in page:
                     "content": bilingual_h_content,
                     "time": current_time_str
                 })
-                save_data(st.session_state.db)
+                if save_data(st.session_state.db):
+                    st.rerun()
             else:
                 st.error("Vui lòng nhập đầy đủ (*) / 请填写完整")
 
