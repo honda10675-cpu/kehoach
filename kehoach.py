@@ -161,8 +161,9 @@ if st.session_state.db.get("last_reset") != reset_key:
 def check_password(pwd):
     return pwd == "230"
 
-# --- BÁO CÁO SONG NGỮ ---
-report_text_p1 = f"""BÁO CÁO CÔNG VIỆC BẢO TRÌ / 维修工作报告
+# --- TẠO BÁO CÁO THEO TỪNG CẤU HÌNH ---
+# 1. Báo cáo chung TRANG 1 & TRANG 2
+report_text_p1_p2 = f"""BÁO CÁO CÔNG VIỆC BẢO TRÌ / 维修工作报告
 Ngày / 日期: {current_date_str} - {current_time_str}
 
 KẾ HOẠCH CÔNG VIỆC (TRANG 1) / 工作计划:
@@ -171,31 +172,35 @@ if st.session_state.db.get("tasks"):
     for i, task in enumerate(st.session_state.db["tasks"], start=1):
         p_flag = "[ƯU TIÊN / 优先] " if task.get("is_priority") else ""
         st_flag = "[Đã xong / 已完成]" if task.get("status") == "done" else ("[Đã giao ca / 已交接]" if task.get("status") == "handoff" else "[Đang làm / 进行中]")
-        report_text_p1 += f"{i}/ {p_flag}{task['machine']} - {task['content']} ({st_flag})\n"
+        report_text_p1_p2 += f"{i}/ {p_flag}{task['machine']} - {task['content']} ({st_flag})\n"
 else:
-    report_text_p1 += "(Chưa có dữ liệu / 暂无数据)\n"
+    report_text_p1_p2 += "(Chưa có dữ liệu / 暂无数据)\n"
 
-report_text_full = report_text_p1 + f"""
+report_text_p1_p2 += f"""
 MÁY DỪNG SỬA (TRANG 2) / 停机维修:
 """
 if st.session_state.db.get("repairs"):
     for i, rep in enumerate(st.session_state.db["repairs"], start=1):
         r_flag = "[Đã xong / 已完成]" if rep.get("is_done") else "[Đang sửa / 维修中]"
-        report_text_full += f"{i}/ {rep['machine']} - {rep['content']} ({r_flag})\n"
+        report_text_p1_p2 += f"{i}/ {rep['machine']} - {rep['content']} ({r_flag})\n"
 else:
-    report_text_full += "(Không có máy dừng sửa / 无停机维修)\n"
+    report_text_p1_p2 += "(Không có máy dừng sửa / 无停机维修)\n"
 
-report_text_full += f"""
-NỘI DUNG GIAO CA (TRANG 3) / 交接班事项:
+# 2. Báo cáo riêng TRANG 3 (Giao ca)
+report_text_p3_only = f"""BÁO CÁO GIAO CA (TRANG 3) / 交接班报告
+Ngày / 日期: {current_date_str} - {current_time_str}
+
+NỘI DUNG GIAO CA / 交接班事项:
 """
 if st.session_state.db.get("handoffs"):
     for i, ho in enumerate(st.session_state.db["handoffs"], start=1):
-        report_text_full += f"{i}/ {ho['machine']} (Người giao / 交接人: {ho.get('sender', 'NV')}): {ho['content']}\n"
+        report_text_p3_only += f"{i}/ {ho['machine']} (Người giao / 交接人: {ho.get('sender', 'NV')}): {ho['content']}\n"
 else:
-    report_text_full += "(Chưa có nội dung giao ca / 暂无交接事项)\n"
+    report_text_p3_only += "(Chưa có nội dung giao ca / 暂无交接事项)\n"
 
 def render_copy_button(page_num):
-    text_content = report_text_p1 if page_num == 1 else report_text_full
+    # Chọn nội dung báo cáo: Trang 1 & 2 dùng chung report_text_p1_p2, Trang 3 dùng riêng report_text_p3_only
+    text_content = report_text_p3_only if page_num == 3 else report_text_p1_p2
     lines = [line for line in text_content.strip().split("\n") if line]
     
     items_html = ""
@@ -256,7 +261,7 @@ def render_copy_button(page_num):
         📷 SAO CHÉP HÌNH BẢNG GỬI ZALO/WECHAT
     </button>
     """
-    comp_height = 450 if page_num == 1 else 350
+    comp_height = 320 if page_num == 3 else 420
     st.components.v1.html(custom_html, height=comp_height, scrolling=True)
 
 # --- TIÊU ĐỀ CHÍNH ---
