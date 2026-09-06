@@ -37,7 +37,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN KỸ THUẬT NHÀ MÁY CHUYÊN SÂU (ĐÃ BỔ SUNG ĐẦY ĐỦ) ---
+# --- BỘ TỪ ĐIỂN KỸ THUẬT NHÀ MÁY CHUYÊN SÂU ---
 DICT_SPELL_TRANS = [
     (r"\bthay\b", "Thay", "更换"),
     (r"\btach\b|\btách\b", "Tách", "拆卸"),
@@ -161,9 +161,22 @@ if "db" not in st.session_state:
 if "page1_authenticated" not in st.session_state:
     st.session_state.page1_authenticated = False
 
-reset_key = f"{current_date_str}_{18 if current_hour >= 18 else (5 if current_hour >= 5 else 0)}"
+# --- LOGIC TỰ ĐỘNG XÓA TRANG 3 VÀO 05:00 VÀ 18:00 HẰNG NGÀY ---
+# Xác định mốc reset hiện tại trong ngày (05:00 hoặc 18:00)
+is_after_18 = (current_hour > 18) or (current_hour == 18 and current_minute >= 0)
+is_after_05 = (current_hour > 5 or (current_hour == 5 and current_minute >= 0)) and not is_after_18
+
+if is_after_18:
+    reset_key = f"{current_date_str}_18:00"
+elif is_after_05:
+    reset_key = f"{current_date_str}_05:00"
+else:
+    # Khoảng thời gian từ 00:00 đến 05:00 tính là mốc 05:00 của ngày mới hoặc cuối ca đêm hôm trước
+    reset_key = f"{current_date_str}_03:00"
+
 if st.session_state.db.get("last_reset") != reset_key:
-    if (current_hour == 5 and current_minute < 30) or (current_hour == 18 and current_minute < 30):
+    # Kiểm tra nếu đúng khoảng thời gian giao ca (05:00-05:30 hoặc 18:00-18:30) thì tự động làm sạch handoffs
+    if ((current_hour == 5 and current_minute <= 30) or (current_hour == 18 and current_minute <= 30)):
         st.session_state.db["handoffs"] = []
         st.session_state.db["last_reset"] = reset_key
         save_data(st.session_state.db)
@@ -234,12 +247,12 @@ def render_copy_button(page_num):
     <script>
     function generateAndCopy_{page_num}() {{
         const element = document.getElementById('report-box-{page_num}');
-        html2canvas(element, {{ scale: 2 }}).then(canvas => {{
+        html2canvas(element, {{ scale: 2 }}) .then(canvas => {{
             canvas.toBlob(blob => {{
                 try {{
                     const item = new ClipboardItem({{ "image/png": blob }});
                     navigator.clipboard.write([item]).then(() => {{
-                        alert('✅ ĐÃ SAO CHÉP HÌNH BẢNG THÀNH CÔNG!\\nAnh mở Zalo hoặc WeChat nhấn Dán (Ctrl+V) để gửi.');
+                        alert('✅ ĐÃ SAO CHÉP HÌNH THÀNH CÔNG!\\nMở Zalo hoặc WeChat nhấn Ctrl+V để dán gửi.');
                     }}).catch(err => {{
                         openImageWin(canvas);
                     }});
@@ -252,8 +265,12 @@ def render_copy_button(page_num):
 
     function openImageWin(canvas) {{
         const win = window.open("");
-        win.document.write('<p style="font-family:sans-serif; font-size:16px; font-weight:bold; color:#2563eb;">Ấn giữ vào hình chọn "Sao chép hình ảnh" hoặc "Tải về" để gửi Zalo/WeChat:</p>');
-        win.document.write('<img src="' + canvas.toDataURL() + '" style="border:1px solid #ccc; max-width:100%;" />');
+        win.document.write('<div style="text-align:center; font-family:sans-serif; padding:15px;">');
+        win.document.write('<p style="font-size:16px; font-weight:bold; color:#2563eb;">📌 CÁCH GỬI ẢNH NHANH CHO ZALO/WECHAT:</p>');
+        win.document.write('<p style="font-size:14px; color:#333;">👉 <b>Ấn giữ vào hình bên dưới</b> chọn <b>"Sao chép hình ảnh" (Copy Image)</b> rồi sang Zalo bấm dán (Ctrl+V).</p>');
+        win.document.write('<hr style="margin:15px 0;"/>');
+        win.document.write('<img src="' + canvas.toDataURL() + '" style="border:2px solid #ccc; max-width:100%; border-radius:8px;" />');
+        win.document.write('</div>');
     }}
     </script>
     
@@ -500,7 +517,7 @@ elif "TRANG 2" in page:
 # TRANG 3: GIAO CA
 elif "TRANG 3" in page:
     st.subheader("Giao Ca / 交接班")
-    st.caption("Dữ liệu Trang 3 sẽ tự động xoá sạch vào 18:00 và 05:00 hằng ngày / 数据将在每天 18:00 和 05:00 自动清空。")
+    st.caption("Dữ liệu Trang 3 sẽ tự động xoá sạch vào lúc 05:00 và 18:00 hằng ngày / 数据将在每天 05:00 和 18:00 自动清空。")
 
     render_copy_button(3)
 
@@ -534,8 +551,7 @@ elif "TRANG 3" in page:
     st.divider()
     st.markdown("### DỮ LIỆU GIAO CA TRONG NGÀY / 当天交接数据")
 
-    # Đã sửa lại lỗi thiếu dấu ngoặc vuông ở đây
-    done_tasks = [t for t in st.session_state.db.get("tasks", []) if t.get("status") == "done"]
+    done_tasks = [t for t in st.session_state.db.get("tasks", []) if t.get("status"] == "done"]
     if done_tasks:
         st.markdown("#### Công việc đã hoàn thành / 已完成工作")
         for dt in done_tasks:
