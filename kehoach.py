@@ -162,7 +162,6 @@ if "page1_authenticated" not in st.session_state:
     st.session_state.page1_authenticated = False
 
 # --- LOGIC TỰ ĐỘNG XÓA TRANG 3 VÀO 05:00 VÀ 18:00 HẰNG NGÀY ---
-# Xác định mốc reset hiện tại trong ngày (05:00 hoặc 18:00)
 is_after_18 = (current_hour > 18) or (current_hour == 18 and current_minute >= 0)
 is_after_05 = (current_hour > 5 or (current_hour == 5 and current_minute >= 0)) and not is_after_18
 
@@ -171,11 +170,9 @@ if is_after_18:
 elif is_after_05:
     reset_key = f"{current_date_str}_05:00"
 else:
-    # Khoảng thời gian từ 00:00 đến 05:00 tính là mốc 05:00 của ngày mới hoặc cuối ca đêm hôm trước
     reset_key = f"{current_date_str}_03:00"
 
 if st.session_state.db.get("last_reset") != reset_key:
-    # Kiểm tra nếu đúng khoảng thời gian giao ca (05:00-05:30 hoặc 18:00-18:30) thì tự động làm sạch handoffs
     if ((current_hour == 5 and current_minute <= 30) or (current_hour == 18 and current_minute <= 30)):
         st.session_state.db["handoffs"] = []
         st.session_state.db["last_reset"] = reset_key
@@ -551,7 +548,7 @@ elif "TRANG 3" in page:
     st.divider()
     st.markdown("### DỮ LIỆU GIAO CA TRONG NGÀY / 当天交接数据")
 
-    done_tasks = [t for t in st.session_state.db.get("tasks", []) if t.get("status"] == "done"]
+    done_tasks = [t for t in st.session_state.db.get("tasks", []) if t.get("status") == "done"]
     if done_tasks:
         st.markdown("#### Công việc đã hoàn thành / 已完成工作")
         for dt in done_tasks:
