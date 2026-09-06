@@ -37,7 +37,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN KỸ THUẬT NHÀ MÁY CHUYÊN SÂU ---
+# --- BỘ TỪ ĐIỂN KỸ THUẬT NHÀ MÁY CHUYÊN SÂU (ĐÃ BỔ SUNG ĐẦY ĐỦ) ---
 DICT_SPELL_TRANS = [
     (r"\bthay\b", "Thay", "更换"),
     (r"\btach\b|\btách\b", "Tách", "拆卸"),
@@ -49,6 +49,11 @@ DICT_SPELL_TRANS = [
     (r"\bdung may\b|\bdừng máy\b", "Dừng máy", "停机"),
     (r"\bxu ly\b|\bxử lý\b", "Xử lý", "处理"),
     (r"\blam\b|\blàm\b", "Làm", "做"),
+    (r"\bhu\b|\bhư\b", "hư", "损坏"),
+    (r"\bchay sai toc do\b|\bchạy sai tốc độ\b", "chạy sai tốc độ", "运行速度错误"),
+    (r"\bdinh hinh\b|\bđịnh hình\b", "định hình", "定型"),
+    (r"\bkhop xoay\b|\bkhớp xoay\b", "khớp xoay", "旋转接头"),
+    (r"\bnuoc\b|\bnước\b", "nước", "水"),
     (r"\bao lo keo gian\b|\báo lô kéo giản\b|\báo lô kéo giãn\b", "áo lô kéo giãn", "拉伸辊套"),
     (r"\bao lo\b|\báo lô\b", "áo lô", "辊套"),
     (r"\blo keo\b|\blô kéo\b", "lô kéo", "牵引辊"),
@@ -93,7 +98,7 @@ def auto_translate_smart(text):
             if zh_word not in zh_parts:
                 zh_parts.append(zh_word)
 
-    # Lọc giữ lại các số hoặc ký tự phụ nếu có trong câu (ví dụ số 2 trong "lô kéo giãn 2")
+    # Lọc giữ lại các số hoặc ký tự phụ nếu có trong câu
     numbers = re.findall(r'\b\d+\b', raw_text)
     for num in numbers:
         if num not in zh_parts:
@@ -535,7 +540,7 @@ elif "TRANG 3" in page:
     st.divider()
     st.markdown("### DỮ LIỆU GIAO CA TRONG NGÀY / 当天交接数据")
 
-    done_tasks = [t for t in st.session_state.db.get("tasks", []) if t.get("status") == "done"]
+    done_tasks = [t for t in st.session_state.db.get("tasks", []) if t.get("status"] == "done"]
     if done_tasks:
         st.markdown("#### Công việc đã hoàn thành / 已完成工作")
         for dt in done_tasks:
