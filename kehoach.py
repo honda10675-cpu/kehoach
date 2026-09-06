@@ -5,7 +5,6 @@ import pytz
 import html
 import json
 import re
-from translate import Translator
 
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(
@@ -38,7 +37,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN KỸ THUẬT NÂNG CAO (DỊCH TẠI CHỖ CHÍNH XÁC 100%) ---
+# --- BỘ TỪ ĐIỂN KỸ THUẬT NHÀ MÁY CHUYÊN SÂU ---
 DICT_SPELL_TRANS = [
     (r"\bthay\b", "Thay", "更换"),
     (r"\btach\b|\btách\b", "Tách", "拆卸"),
@@ -77,43 +76,37 @@ DICT_SPELL_TRANS = [
     (r"\bmay ben\b|\bmáy bện\b", "máy bện", "绞线机"),
 ]
 
-def auto_translate_safe(text):
+def auto_translate_smart(text):
     if not text:
         return "", ""
     if "/" in text or re.search(r'[\u4e00-\u9fff]', text):
         return text.strip(), ""
         
     raw_text = text.strip()
-    
-    # 1. Quét qua từ điển kỹ thuật trước
     viet_text = raw_text
     zh_parts = []
+    
+    # Quét từng cụm từ kỹ thuật trong câu
     for pattern, vi_correct, zh_word in DICT_SPELL_TRANS:
         if re.search(pattern, viet_text, flags=re.IGNORECASE):
             viet_text = re.sub(pattern, vi_correct, viet_text, flags=re.IGNORECASE)
             if zh_word not in zh_parts:
                 zh_parts.append(zh_word)
 
-    # Nếu từ điển đã khớp thuật ngữ kỹ thuật thì trả về ngay (nhanh & không bao giờ lỗi)
-    if zh_parts:
-        viet_text = viet_text[0].upper() + viet_text[1:] if len(viet_text) > 0 else viet_text
-        return viet_text, " ".join(zh_parts)
+    # Lọc giữ lại các số hoặc ký tự phụ nếu có trong câu (ví dụ số 2 trong "lô kéo giãn 2")
+    numbers = re.findall(r'\b\d+\b', raw_text)
+    for num in numbers:
+        if num not in zh_parts:
+            zh_parts.append(num)
 
-    # 2. Nếu từ điển chưa có, gọi dịch online bảo mật không lộ lỗi
-    try:
-        translator = Translator(from_lang="vi", to_lang="zh")
-        res = translator.translate(raw_text)
-        if "ERROR" not in res.upper() and "MYMEMORY" not in res.upper():
-            return raw_text, res
-    except Exception:
-        pass
-
-    return raw_text, ""
+    viet_text = viet_text[0].upper() + viet_text[1:] if len(viet_text) > 0 else viet_text
+    zh_text = " ".join(zh_parts) if zh_parts else viet_text
+    return viet_text, zh_text
 
 def format_bilingual_content(raw_text):
     if not raw_text:
         return ""
-    vi_cor, zh_tr = auto_translate_safe(raw_text)
+    vi_cor, zh_tr = auto_translate_smart(raw_text)
     if zh_tr:
         return f"{vi_cor} / {zh_tr}"
     return vi_cor
