@@ -39,7 +39,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN CHUYÊN NGÀNH & TELEX ---
+# --- BỘ CHUYỂN ĐỔI CHUYÊN NGÀNH OFFLINE (KHÔNG PHỤ THUỘC GOOGLE) ---
 TELEX_FIX = [
     (r"\bddijnhj\b|\bdijnh\b|\bdinh hinh\b", "định hình"),
     (r"\braap\b|\brap\b", "Ráp"),
@@ -54,30 +54,35 @@ TELEX_FIX = [
     (r"\btruc vit\b", "trục vít"),
     (r"\btach nuoc\b", "tách nước"),
     (r"\bthu cuon\b", "thu cuộn"),
-    (r"\bxi lieu\b|\bxi leiu\b", "rò rỉ nguyên liệu"),
-    (r"\bkhu luoi\b", "khu vực lưới lọc"),
-    (r"\bthay\b", "Thay"),
-    (r"\bsua\b", "Sửa"),
-    (r"\bve sinh\b", "Vệ sinh"),
-    (r"\bcan chinh\b", "Căn chỉnh"),
-    (r"\bbac dan\b|\bvong bi\b", "bạc đạn"),
-    (r"\bcot dao\b|\btruc dao\b", "cốt dao"),
-    (r"\bbien tan\b", "biến tần"),
-    (r"\bdong co\b|\bmotor\b", "động cơ"),
-    (r"\bday curoa\b", "dây curoa"),
-    (r"\bmay dun\b", "máy đùn"),
-    (r"\bmay ben\b", "máy bện"),
+    (r"\bxi lieu\b|\bxi leiu\b", "xì liệu"),
+    (r"\bkhu luoi\b", "khu lưới"),
 ]
 
-DICT_DIRECT = {
-    "xi lieu": "漏料",
-    "xì liệu": "漏料",
-    "khu lưới a": "A网区",
-    "khu luoi a": "A网区",
-    "khu lưới": "网区",
-    "trục tách nước": "脱水轴",
-    "truc tach nuoc": "脱水轴",
-}
+DICT_TERMS = [
+    (r"thay", "更换"),
+    (r"sửa", "维修"),
+    (r"ráp", "安装"),
+    (r"vệ sinh", "清洗"),
+    (r"căn chỉnh", "校准"),
+    (r"làm", "制作"),
+    (r"khu lưới a", "A网区"),
+    (r"khu lưới b", "B网区"),
+    (r"khu lưới", "网区"),
+    (r"xì liệu", "漏料"),
+    (r"trục tách nước", "脱水轴"),
+    (r"lô kéo giản", "牵伸辊"),
+    (r"lô định hình", "定型辊"),
+    (r"khớp nối xoay nước", "水旋转接头"),
+    (r"sai tốc độ", "速度异常"),
+    (r"hư", "损坏"),
+    (r"hộp số", "齿轮箱"),
+    (r"trục vít", "螺杆轴"),
+    (r"áo lô", "辊套"),
+    (r"thu cuộn", "收卷"),
+    (r"lưới lọc hạt", "颗粒过滤网"),
+    (r"lỗ", "孔"),
+    (r"dài", "长"),
+]
 
 def clean_vietnamese_text(text):
     if not text:
@@ -87,19 +92,22 @@ def clean_vietnamese_text(text):
         txt = re.sub(pattern, replace_val, txt, flags=re.IGNORECASE)
     return txt
 
-def single_translate_api(text_segment):
-    if not text_segment or not text_segment.strip():
+def offline_translate(text_segment):
+    if not text_segment:
         return ""
+    res = text_segment.lower()
+    for pattern, zh_val in DICT_TERMS:
+        res = re.sub(pattern, zh_val, res, flags=re.IGNORECASE)
     
-    # Kiểm tra từ điển trực tiếp
-    low_seg = text_segment.strip().lower()
-    if low_seg in DICT_DIRECT:
-        return DICT_DIRECT[low_seg]
+    # Loại bỏ các từ tiếng Việt còn sót lại nếu dịch không hết
+    res = re.sub(r'[a-zA-Zàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]+', '', res)
+    return res.strip()
 
+def google_translate_api(text_segment):
     try:
         url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=zh-CN&dt=t&q=" + urllib.parse.quote(text_segment)
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
-        response = urllib.request.urlopen(req, timeout=5)
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        response = urllib.request.urlopen(req, timeout=3)
         result = json.loads(response.read().decode('utf-8'))
         
         translated_text = ""
@@ -116,23 +124,31 @@ def translate_to_zh(text):
     
     cleaned_text = clean_vietnamese_text(text)
     
-    # Tách các vế theo dấu phẩy hoặc phẩy cách
-    parts = re.split(r'([,，;；])', cleaned_text)
-    translated_parts = []
+    # Thử dịch bằng Google API trước
+    zh_text = google_translate_api(cleaned_text)
     
-    for part in parts:
-        if part in [',', '，', ';', '；']:
-            translated_parts.append(part + " ")
-        elif part.strip():
-            zh_seg = single_translate_api(part.strip())
-            translated_parts.append(zh_seg if zh_seg else part.strip())
-            
-    full_zh = "".join(translated_parts).strip()
-    return full_zh
+    # Nếu Google bị chặn/lỗi, dùng bộ dịch Offline chuyên ngành
+    if not zh_text or zh_text.lower() == cleaned_text.lower():
+        parts = re.split(r'([,，;；])', cleaned_text)
+        translated_parts = []
+        for part in parts:
+            if part in [',', '，', ';', '；']:
+                translated_parts.append(part + " ")
+            elif part.strip():
+                zh_seg = offline_translate(part.strip())
+                translated_parts.append(zh_seg if zh_seg else part.strip())
+        zh_text = "".join(translated_parts).strip()
+        
+    return zh_text
 
 def make_bilingual(text):
     if not text:
         return ""
+    
+    # Nếu chuỗi đã chứa dấu "/" tức là đã có dịch trước đó, tiến hành tách phần tiếng Việt ra dịch lại
+    if "/" in text:
+        text = text.split("/")[0].strip()
+
     clean_txt = clean_vietnamese_text(text)
     zh_txt = translate_to_zh(clean_txt)
     
@@ -188,7 +204,6 @@ if "db" not in st.session_state:
 if "page1_authenticated" not in st.session_state:
     st.session_state.page1_authenticated = False
 
-# Xóa trang 3 định kỳ
 reset_key = f"{current_date_str}_{18 if current_hour >= 18 else (5 if current_hour >= 5 else 0)}"
 if st.session_state.db.get("last_reset") != reset_key:
     if (current_hour == 5 and current_minute < 30) or (current_hour == 18 and current_minute < 30):
@@ -399,8 +414,12 @@ if "TRANG 1" in page:
                 with st.form("form_pop_edit"):
                     st.markdown(f"SỬA CÔNG VIỆC / 编辑工作: **{selected_task['machine']}**")
                     pwd_in = st.text_input("Mật khẩu / 密码 *", type="password")
+                    
+                    # Tách lấy phần tiếng Việt ban đầu để hiển thị trong ô nhập
+                    raw_content = selected_task["content"].split("/")[0].strip() if "/" in selected_task["content"] else selected_task["content"]
+                    
                     e_mach = st.text_input("Tên Máy / 设备名称", value=selected_task["machine"])
-                    e_cont = st.text_area("Nội dung / 内容", value=selected_task["content"])
+                    e_cont = st.text_area("Nội dung / 内容", value=raw_content)
                     e_prio = st.checkbox("Ưu tiên / 优先", value=selected_task.get("is_priority", False))
                     if st.form_submit_button("Lưu Thay Đổi / 保存"):
                         if check_password(pwd_in):
@@ -439,7 +458,7 @@ if "TRANG 1" in page:
             
             if st.form_submit_button("LƯU CÔNG VIỆC / 保存工作", use_container_width=True):
                 if t_machine.strip() and t_content.strip():
-                    with st.spinner("Đang tự động dịch song ngữ đầy đủ..."):
+                    with st.spinner("Đang xử lý dịch song ngữ..."):
                         bilingual_content = make_bilingual(t_content)
                     new_item = {
                         "id": len(st.session_state.db.get("tasks", [])) + 1,
@@ -470,7 +489,7 @@ elif "TRANG 2" in page:
         
         if st.form_submit_button("BÁO DỪNG MÁY / 提交停机", use_container_width=True):
             if r_machine.strip() and r_content.strip():
-                with st.spinner("Đang tự động dịch song ngữ đầy đủ..."):
+                with st.spinner("Đang xử lý dịch song ngữ..."):
                     bilingual_r_content = make_bilingual(r_content)
                 if "repairs" not in st.session_state.db:
                     st.session_state.db["repairs"] = []
@@ -540,7 +559,7 @@ elif "TRANG 3" in page:
 
         if st.form_submit_button("GỬI BÀN GIAO CA / 提交交接", use_container_width=True):
             if h_sender.strip() and h_machine.strip() and h_content.strip():
-                with st.spinner("Đang tự động dịch song ngữ đầy đủ..."):
+                with st.spinner("Đang xử lý dịch song ngữ..."):
                     bilingual_h_content = make_bilingual(h_content)
                 if "handoffs" not in st.session_state.db:
                     st.session_state.db["handoffs"] = []
@@ -602,11 +621,14 @@ elif "TRANG 3" in page:
             if st.session_state.get("show_pop_ho_edit", False):
                 with st.form("form_ho_edit"):
                     pw_e = st.text_input("Mật khẩu / 密码 *", type="password")
+                    
+                    raw_ho_content = selected_ho["content"].split("/")[0].strip() if "/" in selected_ho["content"] else selected_ho["content"]
+                    
                     nh_m = st.text_input("Tên máy / 设备", value=selected_ho["machine"])
-                    nh_c = st.text_area("Nội dung / 内容", value=selected_ho["content"])
+                    nh_c = st.text_area("Nội dung / 内容", value=raw_ho_content)
                     if st.form_submit_button("Lưu sửa / 保存"):
                         if check_password(pw_e):
-                            with st.spinner("Đang tự động dịch song ngữ đầy đủ..."):
+                            with st.spinner("Đang xử lý dịch song ngữ..."):
                                 selected_ho["machine"] = nh_m
                                 selected_ho["content"] = make_bilingual(nh_c)
                             save_data(st.session_state.db)
