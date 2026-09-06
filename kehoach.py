@@ -3,8 +3,10 @@ from supabase import create_client, Client
 import datetime
 import pytz
 import html
-import json
 import re
+import urllib.parse
+import urllib.request
+import json
 
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(
@@ -37,86 +39,74 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH CHUẨN ---
-DICT_SPELL_TRANS = [
-    (r"\bthay\b", "Thay", "更换"),
-    (r"\btach\b|\btách\b", "Tách", "拆卸"),
-    (r"\bsua\b|\bsửa\b", "Sửa", "维修"),
-    (r"\blech\b|\blệch\b", "lệch", "偏位"),
-    (r"\blap\b|\blắp\b|\brap\b|\bráp\b", "Ráp", "安装"),
-    (r"\bve sinh\b|\bvệ sinh\b", "Vệ sinh", "清理"),
-    (r"\bcan chinh\b|\bcăn chỉnh\b", "Căn chỉnh", "校准"),
-    (r"\bdung may\b|\bdừng máy\b", "Dừng máy", "停机"),
-    (r"\bxu ly\b|\bxử lý\b", "Xử lý", "处理"),
-    (r"\blam\b|\blàm\b|\btao\b|\btạo\b", "Làm", "制作"),
-    (r"\bao lo\b|\báo lô\b|\blo tao\b|\blô bao\b", "áo lô", "辊套"),
-    (r"\bkeo gian\b|\bkéo giản\b|\bkeo dãn\b|\bkéo dãn\b", "kéo giản", "牵引"),
-    (r"\bluoi loc hat\b|\blưới lọc hạt\b", "lưới lọc hạt", "切粒滤网"),
-    (r"\blo\b|\blỗ\b", "lỗ", "孔径"),
-    (r"\bdai\b|\bdài\b", "dài", "长"),
-    (r"\bdau khuôn\b|\bdau khuon\b|\bđầu khuôn\b", "đầu khuôn", "模头"),
-    (r"\bkhuon\b|\bkhuôn\b", "khuôn", "模具"),
-    (r"\bvan giam ap\b|\bvan giảm áp\b", "van giảm áp", "减压阀"),
-    (r"\bhoi nong\b|\bhơi nóng\b", "hơi nóng", "热蒸汽"),
-    (r"\bbon nuoc nong\b|\bbồn nước nóng\b", "bồn nước nóng", "热水箱"),
-    (r"\bbac dan\b|\bvong bi\b|\bbạc đạn\b|\bvòng bi\b", "bạc đạn", "轴承"),
-    (r"\bcot dao\b|\bcốt dao\b|\btruc dao\b|\btrục dao\b", "cốt dao", "刀轴"),
-    (r"\bthu cuon\b|\bthu cuộn\b|\bcuon\b|\bcuộn\b", "thu cuộn", "收卷"),
-    (r"\bhop so\b|\bhộp số\b", "hộp số", "齿轮箱"),
-    (r"\btruc vit\b|\btrục vít\b", "trục vít", "螺杆"),
-    (r"\btruc\b|\btrục\b", "trục", "轴"),
-    (r"\btach nuoc\b|\btách nước\b", "tách nước", "脱水"),
-    (r"\bbien tan\b|\bbiến tần\b", "biến tần", "变频器"),
-    (r"\bdong co\b|\bmotor\b|\bđộng cơ\b", "động cơ", "电机"),
-    (r"\bxilanh\b|\bxi lanh\b", "xi lanh", "气缸"),
-    (r"\bday curoa\b|\bcu roa\b", "dây curoa", "皮带"),
-    (r"\bcam bien\b|\bcảm biến\b", "cảm biến", "传感器"),
-    (r"\bmay dun\b|\bmáy đùn\b", "máy đùn", "挤出机"),
-    (r"\bmay ben\b|\bmáy bện\b", "máy bện", "绞线机"),
-    (r"\bro le\b|\brơ le\b", "rơ le", "继电器"),
-    (r"\bvan tu\b|\bvan từ\b", "van từ", "电磁阀"),
-    (r"\bduoi\b|\bdưới\b", "dưới", "下"),
-    (r"\btren\b|\btrên\b", "trên", "上"),
-    (r"\bvi tri\b|\bvị trí\b", "vị trí", "位置"),
-    (r"\bnhiet do\b|\bnhiệt độ\b", "nhiệt độ", "温度"),
-    (r"\bhut phe\b|\bhút phế\b", "hút phế", "吸废料"),
-    (r"\bhut\b|\bhút\b", "hút", "吸"),
-    (r"\bphe\b|\bphế\b", "phế", "废料"),
-    (r"\bluoi loc nuoc\b|\blưới lọc nước\b", "lưới lọc nước", "滤水网"),
-    (r"\bluoi loc\b|\blưới lọc\b", "lưới lọc", "滤网"),
+# --- BỘ TỪ ĐIỂN TỰ ĐỘNG CHUẨN HÓA TIẾNG VIỆT CHUYÊN NGÀNH ---
+DICT_SPELL = [
+    (r"\bthay\b", "Thay"),
+    (r"\btach\b|\btách\b", "Tách"),
+    (r"\bsua\b|\bsửa\b", "Sửa"),
+    (r"\blech\b|\blệch\b", "lệch"),
+    (r"\blap\b|\blắp\b|\brap\b|\bráp\b", "Ráp"),
+    (r"\bve sinh\b|\bvệ sinh\b", "Vệ sinh"),
+    (r"\bcan chinh\b|\bcăn chỉnh\b", "Căn chỉnh"),
+    (r"\bdung may\b|\bdừng máy\b", "Dừng máy"),
+    (r"\bxu ly\b|\bxử lý\b", "Xử lý"),
+    (r"\blam\b|\blàm\b|\btao\b|\btạo\b", "Làm"),
+    (r"\bao lo\b|\báo lô\b|\blo tao\b|\blô bao\b", "áo lô"),
+    (r"\bkeo gian\b|\bkéo giản\b|\bkeo dãn\b|\bkéo dãn\b", "kéo giản"),
+    (r"\bluoi loc hat\b|\blưới lọc hạt\b", "lưới lọc hạt"),
+    (r"\bdau khuôn\b|\bdau khuon\b|\bđầu khuôn\b", "đầu khuôn"),
+    (r"\bkhuon\b|\bkhuôn\b", "khuôn"),
+    (r"\bvan giam ap\b|\bvan giảm áp\b", "van giảm áp"),
+    (r"\bhoi nong\b|\bhơi nóng\b", "hơi nóng"),
+    (r"\bbon nuoc nong\b|\bbồn nước nóng\b", "bồn nước nóng"),
+    (r"\bbac dan\b|\bvong bi\b|\bbạc đạn\b|\bvòng bi\b", "bạc đạn"),
+    (r"\bcot dao\b|\bcốt dao\b|\btruc dao\b|\btrục dao\b", "cốt dao"),
+    (r"\bthu cuon\b|\bthu cuộn\b|\bcuon\b|\bcuộn\b", "thu cuộn"),
+    (r"\bhop so\b|\bhộp số\b", "hộp số"),
+    (r"\btruc vit\b|\btrục vít\b", "trục vít"),
+    (r"\btruc\b|\btrục\b", "trục"),
+    (r"\btach nuoc\b|\btách nước\b", "tách nước"),
+    (r"\bbien tan\b|\bbiến tần\b", "biến tần"),
+    (r"\bdong co\b|\bmotor\b|\bđộng cơ\b", "động cơ"),
+    (r"\bxilanh\b|\bxi lanh\b", "xi lanh"),
+    (r"\bday curoa\b|\bcu roa\b", "dây curoa"),
+    (r"\bcam bien\b|\bcảm biến\b", "cảm biến"),
+    (r"\bmay dun\b|\bmáy đùn\b", "máy đùn"),
+    (r"\bmay ben\b|\bmáy bện\b", "máy bện"),
+    (r"\bro le\b|\brơ le\b", "rơ le"),
+    (r"\bvan tu\b|\bvan từ\b", "van từ"),
+    (r"\bluoi loc nuoc\b|\blưới lọc nước\b", "lưới lọc nước"),
+    (r"\bluoi loc\b|\blưới lọc\b", "lưới lọc"),
 ]
 
-def auto_correct_and_translate(text):
+def preprocess_vietnamese(text):
     if not text:
-        return "", ""
+        return ""
     viet_text = text.strip()
-    zh_parts = []
-    for pattern, vi_correct, zh_word in DICT_SPELL_TRANS:
-        if re.search(pattern, viet_text, flags=re.IGNORECASE):
-            viet_text = re.sub(pattern, vi_correct, viet_text, flags=re.IGNORECASE)
-            if zh_word not in zh_parts:
-                zh_parts.append(zh_word)
-
+    for pattern, vi_correct in DICT_SPELL:
+        viet_text = re.sub(pattern, vi_correct, viet_text, flags=re.IGNORECASE)
     viet_text = viet_text[0].upper() + viet_text[1:] if len(viet_text) > 0 else viet_text
-    
-    # Xử lý các con số kèm đơn vị (ví dụ 4mm -> 4mm孔径, 50cm -> 50cm长)
-    digits_mm = re.findall(r'(\d+)\s*mm', viet_text, re.IGNORECASE)
-    digits_cm = re.findall(r'(\d+)\s*cm', viet_text, re.IGNORECASE)
-    
-    zh_final = []
-    for w in zh_parts:
-        if w == "孔径" and digits_mm:
-            zh_final.append(f"{digits_mm[0]}mm孔径")
-        elif w == "长" and digits_cm:
-            zh_final.append(f"{digits_cm[0]}cm长")
-        else:
-            zh_final.append(w)
+    return viet_text
 
-    zh_text = "".join(zh_final) if zh_final else "处理"
-    return viet_text, zh_text
+# --- HÀM TỰ ĐỘNG DỊCH SANG TIẾNG TRUNG BẰNG GOOGLE TRANSLATE ---
+def translate_to_chinese(text):
+    try:
+        url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=zh-CN&dt=t&q=" + urllib.parse.quote(text)
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        response = urllib.request.urlopen(req, timeout=5)
+        result = json.loads(response.read().decode('utf-8'))
+        
+        translated_text = ""
+        for sentence in result[0]:
+            if sentence[0]:
+                translated_text += sentence[0]
+        return translated_text.strip()
+    except Exception:
+        return ""
 
 def format_bilingual_content(raw_text):
-    vi_cor, zh_tr = auto_correct_and_translate(raw_text)
+    vi_cor = preprocess_vietnamese(raw_text)
+    zh_tr = translate_to_chinese(vi_cor)
     if zh_tr:
         return f"{vi_cor} / {zh_tr}"
     return vi_cor
@@ -419,7 +409,8 @@ if "TRANG 1" in page:
             
             if st.form_submit_button("LƯU CÔNG VIỆC / 保存工作", use_container_width=True):
                 if t_machine.strip() and t_content.strip():
-                    bilingual_content = format_bilingual_content(t_content)
+                    with st.spinner("Đang tự động dịch song ngữ..."):
+                        bilingual_content = format_bilingual_content(t_content)
                     new_item = {
                         "id": len(st.session_state.db.get("tasks", [])) + 1,
                         "machine": t_machine.strip(),
@@ -449,9 +440,10 @@ elif "TRANG 2" in page:
         
         if st.form_submit_button("BÁO DỪNG MÁY / 提交停机", use_container_width=True):
             if r_machine.strip() and r_content.strip():
+                with st.spinner("Đang tự động dịch song ngữ..."):
+                    bilingual_r_content = format_bilingual_content(r_content)
                 if "repairs" not in st.session_state.db:
                     st.session_state.db["repairs"] = []
-                bilingual_r_content = format_bilingual_content(r_content)
                 st.session_state.db["repairs"].append({
                     "id": len(st.session_state.db["repairs"]) + 1,
                     "machine": r_machine.strip(),
@@ -518,9 +510,10 @@ elif "TRANG 3" in page:
 
         if st.form_submit_button("GỬI BÀN GIAO CA / 提交交接", use_container_width=True):
             if h_sender.strip() and h_machine.strip() and h_content.strip():
+                with st.spinner("Đang tự động dịch song ngữ..."):
+                    bilingual_h_content = format_bilingual_content(h_content)
                 if "handoffs" not in st.session_state.db:
                     st.session_state.db["handoffs"] = []
-                bilingual_h_content = format_bilingual_content(h_content)
                 st.session_state.db["handoffs"].append({
                     "id": len(st.session_state.db["handoffs"]) + 1,
                     "machine": h_machine.strip(),
@@ -583,8 +576,9 @@ elif "TRANG 3" in page:
                     nh_c = st.text_area("Nội dung / 内容", value=selected_ho["content"])
                     if st.form_submit_button("Lưu sửa / 保存"):
                         if check_password(pw_e):
-                            selected_ho["machine"] = nh_m
-                            selected_ho["content"] = format_bilingual_content(nh_c)
+                            with st.spinner("Đang tự động dịch song ngữ..."):
+                                selected_ho["machine"] = nh_m
+                                selected_ho["content"] = format_bilingual_content(nh_c)
                             save_data(st.session_state.db)
                             st.session_state["show_pop_ho_edit"] = False
                             st.rerun()
