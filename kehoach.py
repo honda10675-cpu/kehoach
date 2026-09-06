@@ -91,14 +91,12 @@ def auto_translate_smart(text):
     viet_text = raw_text
     zh_parts = []
     
-    # Quét từng cụm từ kỹ thuật trong câu
     for pattern, vi_correct, zh_word in DICT_SPELL_TRANS:
         if re.search(pattern, viet_text, flags=re.IGNORECASE):
             viet_text = re.sub(pattern, vi_correct, viet_text, flags=re.IGNORECASE)
             if zh_word not in zh_parts:
                 zh_parts.append(zh_word)
 
-    # Lọc giữ lại các số hoặc ký tự phụ nếu có trong câu
     numbers = re.findall(r'\b\d+\b', raw_text)
     for num in numbers:
         if num not in zh_parts:
@@ -123,7 +121,6 @@ current_time_str = now_vn.strftime("%H:%M")
 current_hour = now_vn.hour
 current_minute = now_vn.minute
 
-# --- KHỞI TẠO VÀ LƯU TRỮ DỮ LIỆU ---
 @st.cache_resource
 def get_supabase_client():
     try:
@@ -164,7 +161,6 @@ if "db" not in st.session_state:
 if "page1_authenticated" not in st.session_state:
     st.session_state.page1_authenticated = False
 
-# Xóa trang 3 định kỳ
 reset_key = f"{current_date_str}_{18 if current_hour >= 18 else (5 if current_hour >= 5 else 0)}"
 if st.session_state.db.get("last_reset") != reset_key:
     if (current_hour == 5 and current_minute < 30) or (current_hour == 18 and current_minute < 30):
@@ -175,7 +171,6 @@ if st.session_state.db.get("last_reset") != reset_key:
 def check_password(pwd):
     return pwd == "230"
 
-# --- HÀM TẠO BÁO CÁO CHO TỪNG YÊU CẦU ---
 def get_report_text(report_type):
     if report_type in [1, 2]:
         text = f"BÁO CÁO CÔNG VIỆC BẢO TRÌ / 维修工作报告\n"
@@ -280,7 +275,6 @@ def render_copy_button(page_num):
     comp_height = 480 if page_num in [1, 2] else 350
     st.components.v1.html(custom_html, height=comp_height, scrolling=True)
 
-# --- TIÊU ĐỀ CHÍNH ---
 st.markdown("<h3 style='text-align: center; color: #0f172a; margin-bottom: 5px;'>QUẢN LÝ BẢO TRÌ MÁY / 设备维修管理</h3>", unsafe_allow_html=True)
 
 page = st.radio(
@@ -540,7 +534,8 @@ elif "TRANG 3" in page:
     st.divider()
     st.markdown("### DỮ LIỆU GIAO CA TRONG NGÀY / 当天交接数据")
 
-    done_tasks = [t for t in st.session_state.db.get("tasks", []) if t.get("status"] == "done"]
+    # Đã sửa lại lỗi thiếu dấu ngoặc vuông ở đây
+    done_tasks = [t for t in st.session_state.db.get("tasks", []) if t.get("status") == "done"]
     if done_tasks:
         st.markdown("#### Công việc đã hoàn thành / 已完成工作")
         for dt in done_tasks:
