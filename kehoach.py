@@ -47,9 +47,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH THUẬT NGỮ BẢO TRÌ MỞ RỘNG ---
+# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH THUẬT NGỮ BẢO TRÌ ---
 DICT_SPELL_TRANS = [
-    # Thao tác & hành động
     (r"\bthay\b", "Thay", "更换"),
     (r"\btach\b|\btách\b", "Tách", "拆卸"),
     (r"\bsua\b|\bsửa\b", "Sửa", "维修"),
@@ -59,8 +58,6 @@ DICT_SPELL_TRANS = [
     (r"\bcan chinh\b|\bcăn chỉnh\b", "Căn chỉnh", "校准"),
     (r"\bdung may\b|\bdừng máy\b", "Dừng máy", "停机"),
     (r"\bxu ly\b|\bxử lý\b", "Xử lý", "处理"),
-    
-    # Chi tiết linh kiện & thiết bị
     (r"\bdau khuôn\b|\bdau khuon\b|\bđầu khuôn\b", "đầu khuôn", "模头"),
     (r"\bkhuon\b|\bkhuôn\b", "khuôn", "模具"),
     (r"\bvan giam ap\b|\bvan giảm áp\b", "van giảm áp", "减压阀"),
@@ -82,8 +79,6 @@ DICT_SPELL_TRANS = [
     (r"\bmay ben\b|\bmáy bện\b", "máy bện", "绞线机"),
     (r"\bro le\b|\brơ le\b", "rơ le", "继电器"),
     (r"\bvan tu\b|\bvan từ\b", "van từ", "电磁阀"),
-    
-    # Vị trí & Mô tả
     (r"\bduoi\b|\bdưới\b", "dưới", "下"),
     (r"\btren\b|\btrên\b", "trên", "上"),
     (r"\bvi tri\b|\bvị trí\b", "vị trí", "位置"),
@@ -93,10 +88,8 @@ DICT_SPELL_TRANS = [
 def auto_correct_and_translate(text):
     if not text:
         return "", ""
-    
     viet_text = text.strip()
     zh_parts = []
-    
     for pattern, vi_correct, zh_word in DICT_SPELL_TRANS:
         if re.search(pattern, viet_text, flags=re.IGNORECASE):
             viet_text = re.sub(pattern, vi_correct, viet_text, flags=re.IGNORECASE)
@@ -105,7 +98,6 @@ def auto_correct_and_translate(text):
 
     viet_text = viet_text[0].upper() + viet_text[1:] if len(viet_text) > 0 else viet_text
     zh_text = " ".join(zh_parts) if zh_parts else "处理"
-    
     return viet_text, zh_text
 
 def format_bilingual_content(raw_text):
@@ -114,7 +106,6 @@ def format_bilingual_content(raw_text):
         return f"{vi_cor} / {zh_tr}"
     return vi_cor
 
-# Lấy thời gian thực Việt Nam (UTC+7)
 tz_vn = pytz.timezone('Asia/Ho_Chi_Minh')
 now_vn = datetime.datetime.now(tz_vn)
 current_date_str = now_vn.strftime("%d/%m/%Y")
@@ -122,15 +113,16 @@ current_time_str = now_vn.strftime("%H:%M")
 current_hour = now_vn.hour
 current_minute = now_vn.minute
 
-# --- KẾT NỐI SUPABASE CƠ SỞ DỮ LIỆU DÙNG CHUNG ---
-@st.cache_resource
+# --- KHỞI TẠO VÀ LƯU TRỮ DỮ LIỆU CHÍNH XÁC ---
 def init_supabase():
     try:
-        url = st.secrets["SUPABASE_URL"]
-        key = st.secrets["SUPABASE_KEY"]
-        return create_client(url, key)
+        url = st.secrets.get("SUPABASE_URL")
+        key = st.secrets.get("SUPABASE_KEY")
+        if url and key:
+            return create_client(url, key)
     except Exception:
-        return None
+        pass
+    return None
 
 supabase = init_supabase()
 
@@ -138,21 +130,22 @@ def load_data():
     if supabase:
         try:
             res = supabase.table("app_data").select("*").eq("id", 1).execute()
-            if res.data:
+            if res.data and len(res.data) > 0:
                 return res.data[0]["content"]
         except Exception:
             pass
     return {"tasks": [], "repairs": [], "handoffs": [], "last_reset": ""}
 
 def save_data(data):
+    st.session_state.db = data
     if supabase:
         try:
             supabase.table("app_data").upsert({"id": 1, "content": data}).execute()
         except Exception:
             pass
 
-if "db" not in st.session_state:
-    st.session_state.db = load_data()
+# Bắt buộc đọc từ CSDL mỗi khi F5 hoặc mở ứng dụng
+st.session_state.db = load_data()
 
 if "page1_authenticated" not in st.session_state:
     st.session_state.page1_authenticated = False
@@ -168,7 +161,7 @@ if st.session_state.db.get("last_reset") != reset_key:
 def check_password(pwd):
     return pwd == "230"
 
-# --- TẠO CHUỖI BÁO CÁO SONG NGỮ TRANG 1 ---
+# --- BÁO CÁO SONG NGỮ TRANG 1 ---
 report_text_p1 = f"""BÁO CÁO CÔNG VIỆC BẢO TRÌ / 维修工作报告
 Ngày / 日期: {current_date_str} - {current_time_str}
 
@@ -176,19 +169,19 @@ KẾ HOẠCH CÔNG VIỆC (TRANG 1) / 工作计划:
 """
 if st.session_state.db.get("tasks"):
     for i, task in enumerate(st.session_state.db["tasks"], start=1):
-        p_flag = "[ƯU TIÊN / 优先] " if task["is_priority"] else ""
-        st_flag = "[Đã xong / 已完成]" if task["status"] == "done" else ("[Đã giao ca / 已交接]" if task["status"] == "handoff" else "[Đang làm / 进行中]")
+        p_flag = "[ƯU TIÊN / 优先] " if task.get("is_priority") else ""
+        st_flag = "[Đã xong / 已完成]" if task.get("status") == "done" else ("[Đã giao ca / 已交接]" if task.get("status") == "handoff" else "[Đang làm / 进行中]")
         report_text_p1 += f"{i}/ {p_flag}{task['machine']} - {task['content']} ({st_flag})\n"
 else:
     report_text_p1 += "(Chưa có dữ liệu / 暂无数据)\n"
 
-# --- TẠO CHUỖI BÁO CÁO SONG NGỮ ĐẦY ĐỦ (TRANG 2 & 3) ---
+# --- BÁO CÁO SONG NGỮ ĐẦY ĐỦ ---
 report_text_full = report_text_p1 + f"""
 MÁY DỪNG SỬA (TRANG 2) / 停机维修:
 """
 if st.session_state.db.get("repairs"):
     for i, rep in enumerate(st.session_state.db["repairs"], start=1):
-        r_flag = "[Đã xong / 已完成]" if rep["is_done"] else "[Đang sửa / 维修中]"
+        r_flag = "[Đã xong / 已完成]" if rep.get("is_done") else "[Đang sửa / 维修中]"
         report_text_full += f"{i}/ {rep['machine']} - {rep['content']} ({r_flag})\n"
 else:
     report_text_full += "(Không có máy dừng sửa / 无停机维修)\n"
@@ -202,7 +195,6 @@ if st.session_state.db.get("handoffs"):
 else:
     report_text_full += "(Chưa có nội dung giao ca / 暂无交接事项)\n"
 
-# --- RENDER NÚT SAO CHÉP CHUẨN ---
 def render_copy_button(page_num):
     text_content = report_text_p1 if page_num == 1 else report_text_full
     lines = [line for line in text_content.strip().split("\n") if line]
@@ -287,9 +279,7 @@ page = st.radio(
 
 st.divider()
 
-# ==========================================
-# TRANG 1: KẾ HOẠCH CÔNG VIỆC
-# ==========================================
+# TRANG 1: KẾ HOẠCH
 if "TRANG 1" in page:
     if not st.session_state.page1_authenticated:
         st.subheader("🔒 Yêu cầu mật khẩu truy cập Trang 1 / 验证密码")
@@ -304,19 +294,17 @@ if "TRANG 1" in page:
                     st.error("Mật khẩu không đúng / 密码错误!")
     else:
         st.subheader("Ghi Kế Hoạch Công Việc Ngày / 每日工作计划登记")
-
         render_copy_button(1)
 
         st.markdown("### DANH SÁCH CÔNG VIỆC / 工作列表")
-
-        pending_list = [t for t in st.session_state.db.get("tasks", []) if t["status"] == "pending"]
+        pending_list = [t for t in st.session_state.db.get("tasks", []) if t.get("status") == "pending"]
 
         if not pending_list:
             st.info("Chưa có công việc nào trong danh sách / 暂无工作计划")
         else:
             for idx, t in enumerate(pending_list, start=1):
-                card_style = "row-card-priority" if t["is_priority"] else "row-card"
-                prio_tag = "[ƯU TIÊN / 优先]" if t["is_priority"] else ""
+                card_style = "row-card-priority" if t.get("is_priority") else "row-card"
+                prio_tag = "[ƯU TIÊN / 优先]" if t.get("is_priority") else ""
 
                 st.markdown(f"""
                 <div class="{card_style}">
@@ -361,6 +349,8 @@ if "TRANG 1" in page:
                         if progress_txt.strip() and next_task_txt.strip():
                             selected_task["status"] = "handoff"
                             formatted_handoff = format_bilingual_content(f"[Tiến độ: {progress_txt}] - Kế hoạch tiếp: {next_task_txt}")
+                            if "handoffs" not in st.session_state.db:
+                                st.session_state.db["handoffs"] = []
                             st.session_state.db["handoffs"].append({
                                 "id": len(st.session_state.db["handoffs"]) + 1,
                                 "machine": selected_task["machine"],
@@ -381,7 +371,7 @@ if "TRANG 1" in page:
                     pwd_in = st.text_input("Mật khẩu / 密码 *", type="password")
                     e_mach = st.text_input("Tên Máy / 设备名称", value=selected_task["machine"])
                     e_cont = st.text_area("Nội dung / 内容", value=selected_task["content"])
-                    e_prio = st.checkbox("Ưu tiên / 优先", value=selected_task["is_priority"])
+                    e_prio = st.checkbox("Ưu tiên / 优先", value=selected_task.get("is_priority", False))
                     if st.form_submit_button("Lưu Thay Đổi / 保存"):
                         if check_password(pwd_in):
                             selected_task["machine"] = e_mach
@@ -422,7 +412,6 @@ if "TRANG 1" in page:
             if st.form_submit_button("LƯU CÔNG VIỆC / 保存工作", use_container_width=True):
                 if t_machine.strip() and t_content.strip():
                     bilingual_content = format_bilingual_content(t_content)
-                    
                     new_item = {
                         "id": len(st.session_state.db.get("tasks", [])) + 1,
                         "machine": t_machine.strip(),
@@ -440,12 +429,9 @@ if "TRANG 1" in page:
                 else:
                     st.error("Vui lòng điền đầy đủ thông tin (*) / 请填写完整")
 
-# ==========================================
 # TRANG 2: DỪNG MÁY SỬA
-# ==========================================
 elif "TRANG 2" in page:
     st.subheader("Ghi Chú Dừng Máy Sửa / 停机维修记录")
-
     render_copy_button(2)
 
     with st.form("form_repair", clear_on_submit=True):
@@ -457,9 +443,7 @@ elif "TRANG 2" in page:
             if r_machine.strip() and r_content.strip():
                 if "repairs" not in st.session_state.db:
                     st.session_state.db["repairs"] = []
-                
                 bilingual_r_content = format_bilingual_content(r_content)
-                
                 st.session_state.db["repairs"].append({
                     "id": len(st.session_state.db["repairs"]) + 1,
                     "machine": r_machine.strip(),
@@ -474,16 +458,14 @@ elif "TRANG 2" in page:
                 st.error("Bắt buộc điền thông tin (*) / 请填写完整")
 
     st.divider()
-
     st.markdown("### DANH SÁCH MÁY DỪNG SỬA / 停机维修列表")
-
     repairs_list = st.session_state.db.get("repairs", [])
     if not repairs_list:
         st.info("Hiện không có máy dừng sửa / 暂无停机维修")
 
     for r in repairs_list:
-        st_color = "#10b981" if r["is_done"] else "#ef4444"
-        st_text = "ĐÃ SỬA XONG / 已修好" if r["is_done"] else "ĐANG SỬA / 维修中"
+        st_color = "#10b981" if r.get("is_done") else "#ef4444"
+        st_text = "ĐÃ SỬA XONG / 已修好" if r.get("is_done") else "ĐANG SỬA / 维修中"
 
         st.markdown(f"""
         <div style="border-left: 5px solid {st_color}; background: #ffffff; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px;">
@@ -496,7 +478,7 @@ elif "TRANG 2" in page:
         </div>
         """, unsafe_allow_html=True)
 
-        if not r["is_done"]:
+        if not r.get("is_done"):
             if st.button("Tích Hoàn Thành (Đã Sửa Xong) / 完成", key=f"fix_{r['id']}", use_container_width=True):
                 r["is_done"] = True
                 if "handoffs" not in st.session_state.db:
@@ -512,9 +494,7 @@ elif "TRANG 2" in page:
                 st.success("Đã sửa xong! Chuyển sang Trang 3 / 已修好，移至第3页！")
                 st.rerun()
 
-# ==========================================
 # TRANG 3: GIAO CA
-# ==========================================
 elif "TRANG 3" in page:
     st.subheader("Giao Ca / 交接班")
     st.caption("Dữ liệu Trang 3 sẽ tự động xoá sạch vào 18:00 và 05:00 hằng ngày / 数据将在每天 18:00 和 05:00 自动清空。")
@@ -534,9 +514,7 @@ elif "TRANG 3" in page:
             if h_sender.strip() and h_machine.strip() and h_content.strip():
                 if "handoffs" not in st.session_state.db:
                     st.session_state.db["handoffs"] = []
-                
                 bilingual_h_content = format_bilingual_content(h_content)
-                
                 st.session_state.db["handoffs"].append({
                     "id": len(st.session_state.db["handoffs"]) + 1,
                     "machine": h_machine.strip(),
@@ -551,10 +529,9 @@ elif "TRANG 3" in page:
                 st.error("Vui lòng nhập đầy đủ (*) / 请填写完整")
 
     st.divider()
-
     st.markdown("### DỮ LIỆU GIAO CA TRONG NGÀY / 当天交接数据")
 
-    done_tasks = [t for t in st.session_state.db.get("tasks", []) if t["status"] == "done"]
+    done_tasks = [t for t in st.session_state.db.get("tasks", []) if t.get("status") == "done"]
     if done_tasks:
         st.markdown("#### Công việc đã hoàn thành / 已完成工作")
         for dt in done_tasks:
@@ -582,7 +559,6 @@ elif "TRANG 3" in page:
         if h_list:
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("### THAO TÁC GIAO CA / 交接操作")
-            
             ho_options = {f"{idx}/ {h['machine']} - {h['content']}": h for idx, h in enumerate(h_list, start=1)}
             selected_ho_label = st.selectbox("Chọn mục giao ca cần thao tác / 选择交接项:", list(ho_options.keys()))
             selected_ho = ho_options[selected_ho_label]
