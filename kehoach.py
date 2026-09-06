@@ -4,6 +4,7 @@ import datetime
 import pytz
 import html
 import json
+import re
 
 # --- CẤU HÌNH TRANG & ICON APP ---
 st.set_page_config(
@@ -45,7 +46,6 @@ st.markdown("""
         margin-bottom: 6px;
     }
 
-    /* Khung ẩn chứa bảng báo cáo phục vụ chụp ảnh */
     .report-capture-area {
         background-color: #ffffff;
         border: 2px solid #2563eb;
@@ -61,6 +61,59 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH THUẬT NGỮ BẢO TRÌ ---
+DICT_SPELL_TRANS = [
+    # Lỗi chính tả / từ viết tắt -> Từ tiếng Việt chuẩn -> Tiếng Trung
+    (r"\btach\b|\btách\b", "Tách", "拆卸"),
+    (r"\bhop so\b|\bhộp số\b", "hộp số", "齿轮箱"),
+    (r"\btruc vit\b|\btrục vít\b", "trục vít", "螺杆"),
+    (r"\bthay\b", "Thay", "更换"),
+    (r"\btruc\b|\btrục\b", "trục", "轴"),
+    (r"\btach nuoc\b|\btách nước\b", "tách nước", "脱水"),
+    (r"\bduoi\b|\bdưới\b", "dưới", "下"),
+    (r"\btren\b|\btrên\b", "trên", "上"),
+    (r"\bsua\b|\bsửa\b", "Sửa", "维修"),
+    (r"\bbac dan\b|\bvong bi\b|\bbạc đạn\b|\bvòng bi\b", "bạc đạn", "轴承"),
+    (r"\bbien tan\b|\bbiến tần\b", "biến tần", "变频器"),
+    (r"\bdong co\b|\bmotor\b|\bđộng cơ\b", "động cơ", "电机"),
+    (r"\bxilanh\b|\bxi lanh\b", "xi lanh", "气缸"),
+    (r"\bday curoa\b|\bDây curoa\b|\bcu roa\b", "dây curoa", "皮带"),
+    (r"\bcam bien\b|\bcảm biến\b", "cảm biến", "传感器"),
+    (r"\bve sinh\b|\bvệ sinh\b", "Vệ sinh", "清理"),
+    (r"\blap\b|\blắp\b", "Lắp", "安装"),
+    (r"\bcan chinh\b|\bcăn chỉnh\b", "Căn chỉnh", "校准"),
+    (r"\bmay dun\b|\bmáy đùn\b", "máy đùn", "挤出机"),
+    (r"\bmay ben\b|\bmáy bện\b", "máy bện", "绞线机"),
+    (r"\bro le\b|\brơ le\b", "rơ le", "继电器"),
+    (r"\bvan tu\b|\bvan từ\b", "van từ", "电磁阀"),
+]
+
+def auto_correct_and_translate(text):
+    if not text:
+        return "", ""
+    
+    viet_text = text.strip()
+    zh_parts = []
+    
+    # Chuẩn hóa từ vựng & Gom từ dịch tiếng Trung
+    for pattern, vi_correct, zh_word in DICT_SPELL_TRANS:
+        if re.search(pattern, viet_text, flags=re.IGNORECASE):
+            viet_text = re.sub(pattern, vi_correct, viet_text, flags=re.IGNORECASE)
+            if zh_word not in zh_parts:
+                zh_parts.append(zh_word)
+
+    # Đảm bảo viết hoa chữ đầu
+    viet_text = viet_text[0].upper() + viet_text[1:] if len(viet_text) > 0 else viet_text
+    zh_text = " ".join(zh_parts) if zh_parts else "处理"
+    
+    return viet_text, zh_text
+
+def format_bilingual_content(raw_text):
+    vi_cor, zh_tr = auto_correct_and_translate(raw_text)
+    if zh_tr:
+        return f"{vi_cor} / {zh_tr}"
+    return vi_cor
 
 # Lấy thời gian thực Việt Nam (UTC+7)
 tz_vn = pytz.timezone('Asia/Ho_Chi_Minh')
@@ -251,7 +304,7 @@ if "TRANG 1" in page:
                 st.markdown(f"""
                 <div class="{card_style}">
                     <strong>{idx}/ {html.escape(t['machine'])}</strong> <span style="color:#d97706; font-weight:bold;">{prio_tag}</span><br>
-                    <span style="color: #475569; font-size: 0.9rem;">Nội dung / 内容: {html.escape(t['content'])} ({t['time']})</span>
+                    <span style="color: #475569; font-size: 0.95rem;">Nội dung / 内容: <strong>{html.escape(t['content'])}</strong> ({t['time']})</span>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -290,10 +343,11 @@ if "TRANG 1" in page:
                     if st.form_submit_button("Xác Nhận Bàn Giao / 确认交接"):
                         if progress_txt.strip() and next_task_txt.strip():
                             selected_task["status"] = "handoff"
+                            formatted_handoff = format_bilingual_content(f"[Tiến độ: {progress_txt}] - Kế hoạch tiếp: {next_task_txt}")
                             st.session_state.db["handoffs"].append({
                                 "id": len(st.session_state.db["handoffs"]) + 1,
                                 "machine": selected_task["machine"],
-                                "content": f"[Tiến độ/进度: {progress_txt}] - Kế hoạch tiếp/后续计划: {next_task_txt}",
+                                "content": formatted_handoff,
                                 "sender": "Chuyển ca / 移交",
                                 "time": current_time_str
                             })
@@ -314,7 +368,7 @@ if "TRANG 1" in page:
                     if st.form_submit_button("Lưu Thay Đổi / 保存"):
                         if check_password(pwd_in):
                             selected_task["machine"] = e_mach
-                            selected_task["content"] = e_cont
+                            selected_task["content"] = format_bilingual_content(e_cont)
                             selected_task["is_priority"] = e_prio
                             save_data(st.session_state.db)
                             st.session_state["show_pop_edit"] = False
@@ -342,18 +396,21 @@ if "TRANG 1" in page:
             st.markdown("### Nhập Công Việc Mới / 添加新工作")
             col_t1, col_t2 = st.columns([2, 1])
             with col_t1:
-                t_machine = st.text_input("Công việc và Máy / 设备与工作 *", placeholder="Ví dụ: DKW2 - Tách hộp số")
+                t_machine = st.text_input("Công việc và Máy / 设备与工作 *", placeholder="Ví dụ: DKW2")
             with col_t2:
                 t_prio = st.checkbox("Ưu tiên / 优先")
 
-            t_content = st.text_area("Nội dung chi tiết / 详细内容 *", placeholder="Mô tả công việc...")
+            t_content = st.text_area("Nội dung chi tiết / 详细内容 *", placeholder="Ví dụ: tach hop so truc vit")
             
             if st.form_submit_button("LƯU CÔNG VIỆC / 保存工作", use_container_width=True):
                 if t_machine.strip() and t_content.strip():
+                    # Tự động sửa chính tả và chuyển đổi sang dạng song ngữ Việt - Trung
+                    bilingual_content = format_bilingual_content(t_content)
+                    
                     new_item = {
                         "id": len(st.session_state.db.get("tasks", [])) + 1,
-                        "machine": t_machine,
-                        "content": t_content,
+                        "machine": t_machine.strip(),
+                        "content": bilingual_content,
                         "is_priority": t_prio,
                         "status": "pending",
                         "time": current_time_str
@@ -376,16 +433,19 @@ elif "TRANG 2" in page:
     with st.form("form_repair", clear_on_submit=True):
         st.markdown("### Báo Dừng Máy Sửa Mới / 登记停机维修")
         r_machine = st.text_input("Tên Máy Dừng / 停机设备 *", placeholder="Ví dụ: PE59")
-        r_content = st.text_area("Sự cố & Nội dung sửa / 故障与维修内容 *", placeholder="Mô tả sự cố...")
+        r_content = st.text_area("Sự cố & Nội dung sửa / 故障与维修内容 *", placeholder="Ví dụ: thay truc tach nuoc duoi")
         
         if st.form_submit_button("BÁO DỪNG MÁY / 提交停机", use_container_width=True):
             if r_machine.strip() and r_content.strip():
                 if "repairs" not in st.session_state.db:
                     st.session_state.db["repairs"] = []
+                
+                bilingual_r_content = format_bilingual_content(r_content)
+                
                 st.session_state.db["repairs"].append({
                     "id": len(st.session_state.db["repairs"]) + 1,
-                    "machine": r_machine,
-                    "content": r_content,
+                    "machine": r_machine.strip(),
+                    "content": bilingual_r_content,
                     "is_done": False,
                     "time": current_time_str
                 })
@@ -415,7 +475,7 @@ elif "TRANG 2" in page:
                 <span style="color: {st_color}; font-weight: bold;">{st_text}</span>
             </div>
             <div style="font-size: 0.85rem; color: #64748b; margin-top: 2px;">{r['time']}</div>
-            <div style="font-size: 0.95rem; color: #0f172a; margin-top: 4px;">Nội dung / 内容: {html.escape(r['content'])}</div>
+            <div style="font-size: 0.95rem; color: #0f172a; margin-top: 4px;">Nội dung / 内容: <strong>{html.escape(r['content'])}</strong></div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -455,11 +515,14 @@ elif "TRANG 3" in page:
             if h_sender.strip() and h_machine.strip() and h_content.strip():
                 if "handoffs" not in st.session_state.db:
                     st.session_state.db["handoffs"] = []
+                
+                bilingual_h_content = format_bilingual_content(h_content)
+                
                 st.session_state.db["handoffs"].append({
                     "id": len(st.session_state.db["handoffs"]) + 1,
-                    "machine": h_machine,
-                    "sender": h_sender,
-                    "content": h_content,
+                    "machine": h_machine.strip(),
+                    "sender": h_sender.strip(),
+                    "content": bilingual_h_content,
                     "time": current_time_str
                 })
                 save_data(st.session_state.db)
@@ -494,7 +557,7 @@ elif "TRANG 3" in page:
             st.markdown(f"""
             <div class="row-card">
                 <strong>{idx}/ {html.escape(h['machine'])}</strong> (Người giao / 交接人: {html.escape(h.get('sender', 'NV'))}) - <span style="color: #64748b; font-size: 0.85rem;">{h['time']}</span><br>
-                <span style="color: #1e293b; font-size: 0.95rem;">Nội dung / 内容: {html.escape(h['content'])}</span>
+                <span style="color: #1e293b; font-size: 0.95rem;">Nội dung / 内容: <strong>{html.escape(h['content'])}</strong></span>
             </div>
             """, unsafe_allow_html=True)
 
@@ -522,7 +585,7 @@ elif "TRANG 3" in page:
                     if st.form_submit_button("Lưu sửa / 保存"):
                         if check_password(pw_e):
                             selected_ho["machine"] = nh_m
-                            selected_ho["content"] = nh_c
+                            selected_ho["content"] = format_bilingual_content(nh_c)
                             save_data(st.session_state.db)
                             st.session_state["show_pop_ho_edit"] = False
                             st.success("Đã cập nhật / 已更新!")
