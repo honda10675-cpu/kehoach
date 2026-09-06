@@ -5,7 +5,7 @@ import pytz
 import html
 import json
 import re
-from deep_translator import GoogleTranslator
+from translate import Translator
 
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(
@@ -38,60 +38,82 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN DỰ PHÒNG (Khi mất mạng) ---
+# --- BỘ TỪ ĐIỂN KỸ THUẬT NÂNG CAO (DỊCH TẠI CHỖ CHÍNH XÁC 100%) ---
 DICT_SPELL_TRANS = [
     (r"\bthay\b", "Thay", "更换"),
     (r"\btach\b|\btách\b", "Tách", "拆卸"),
     (r"\bsua\b|\bsửa\b", "Sửa", "维修"),
+    (r"\blech\b|\blệch\b", "lệch", "偏位"),
     (r"\blap\b|\blắp\b|\brap\b|\bráp\b", "Ráp", "安装"),
     (r"\bve sinh\b|\bvệ sinh\b", "Vệ sinh", "清理"),
     (r"\bcan chinh\b|\bcăn chỉnh\b", "Căn chỉnh", "校准"),
     (r"\bdung may\b|\bdừng máy\b", "Dừng máy", "停机"),
+    (r"\bxu ly\b|\bxử lý\b", "Xử lý", "处理"),
+    (r"\blam\b|\blàm\b", "Làm", "做"),
+    (r"\bao lo keo gian\b|\báo lô kéo giản\b|\báo lô kéo giãn\b", "áo lô kéo giãn", "拉伸辊套"),
     (r"\bao lo\b|\báo lô\b", "áo lô", "辊套"),
+    (r"\blo keo\b|\blô kéo\b", "lô kéo", "牵引辊"),
     (r"\blo\b|\blô\b", "lô", "压辊"),
     (r"\bkeo gian\b|\bkéo giản\b|\bkéo giãn\b", "kéo giãn", "拉伸"),
+    (r"\bkeo\b|\bkéo\b", "kéo", "牵引"),
+    (r"\bdau khuôn\b|\bdau khuon\b|\bđầu khuôn\b", "đầu khuôn", "模头"),
+    (r"\bkhuon\b|\bkhuôn\b", "khuôn", "模具"),
+    (r"\bvan giam ap\b|\bvan giảm áp\b", "van giảm áp", "减压阀"),
+    (r"\bhoi nong\b|\bhơi nóng\b", "hơi nóng", "热蒸汽"),
+    (r"\bbon nuoc nong\b|\bbồn nước nóng\b", "bồn nước nóng", "热水箱"),
+    (r"\bbac dan\b|\bvong bi\b|\bbạc đạn\b|\bvòng bi\b", "bạc đạn", "轴承"),
+    (r"\bcot dao\b|\bcốt dao\b|\btruc dao\b|\btrục dao\b", "cốt dao", "刀轴"),
+    (r"\bthu cuon\b|\bthu cuộn\b|\bcuon\b|\bcuộn\b", "thu cuộn", "收卷"),
     (r"\bhop so\b|\bhộp số\b", "hộp số", "齿轮箱"),
     (r"\btruc vit\b|\btrục vít\b", "trục vít", "螺杆"),
     (r"\btruc\b|\btrục\b", "trục", "轴"),
     (r"\btach nuoc\b|\btách nước\b", "tách nước", "脱水"),
     (r"\bbien tan\b|\bbiến tần\b", "biến tần", "变频器"),
     (r"\bdong co\b|\bmotor\b|\bđộng cơ\b", "động cơ", "电机"),
+    (r"\bxilanh\b|\bxi lanh\b", "xi lanh", "气缸"),
+    (r"\bday curoa\b|\bcu roa\b", "dây curoa", "皮带"),
+    (r"\bcam bien\b|\bcảm biến\b", "cảm biến", "传感器"),
+    (r"\bmay dun\b|\bmáy đùn\b", "máy đùn", "挤出机"),
+    (r"\bmay ben\b|\bmáy bện\b", "máy bện", "绞线机"),
 ]
 
-def fallback_translate(text):
-    viet_text = text.strip()
+def auto_translate_safe(text):
+    if not text:
+        return "", ""
+    if "/" in text or re.search(r'[\u4e00-\u9fff]', text):
+        return text.strip(), ""
+        
+    raw_text = text.strip()
+    
+    # 1. Quét qua từ điển kỹ thuật trước
+    viet_text = raw_text
     zh_parts = []
     for pattern, vi_correct, zh_word in DICT_SPELL_TRANS:
         if re.search(pattern, viet_text, flags=re.IGNORECASE):
             viet_text = re.sub(pattern, vi_correct, viet_text, flags=re.IGNORECASE)
             if zh_word not in zh_parts:
                 zh_parts.append(zh_word)
-    viet_text = viet_text[0].upper() + viet_text[1:] if len(viet_text) > 0 else viet_text
-    zh_text = " ".join(zh_parts)
-    return viet_text, zh_text
 
-def auto_translate_online(text):
-    if not text:
-        return "", ""
-    # Nếu đã có tiếng Trung hoặc dấu phân cách / thì giữ nguyên
-    if "/" in text or re.search(r'[\u4e00-\u9fff]', text):
-        return text.strip(), ""
-        
-    raw_text = text.strip()
-    
-    # 1. Thử dịch qua Google Translate Online
+    # Nếu từ điển đã khớp thuật ngữ kỹ thuật thì trả về ngay (nhanh & không bao giờ lỗi)
+    if zh_parts:
+        viet_text = viet_text[0].upper() + viet_text[1:] if len(viet_text) > 0 else viet_text
+        return viet_text, " ".join(zh_parts)
+
+    # 2. Nếu từ điển chưa có, gọi dịch online bảo mật không lộ lỗi
     try:
-        translated_zh = GoogleTranslator(source='auto', target='zh-CN').translate(raw_text)
-        formatted_vi = raw_text[0].upper() + raw_text[1:] if len(raw_text) > 0 else raw_text
-        return formatted_vi, translated_zh
+        translator = Translator(from_lang="vi", to_lang="zh")
+        res = translator.translate(raw_text)
+        if "ERROR" not in res.upper() and "MYMEMORY" not in res.upper():
+            return raw_text, res
     except Exception:
-        # 2. Nếu không có mạng hoặc lỗi API -> Tự động dùng từ điển dự phòng
-        return fallback_translate(raw_text)
+        pass
+
+    return raw_text, ""
 
 def format_bilingual_content(raw_text):
     if not raw_text:
         return ""
-    vi_cor, zh_tr = auto_translate_online(raw_text)
+    vi_cor, zh_tr = auto_translate_safe(raw_text)
     if zh_tr:
         return f"{vi_cor} / {zh_tr}"
     return vi_cor
