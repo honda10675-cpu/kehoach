@@ -37,7 +37,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH ---
+# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH CHUẨN ---
 DICT_SPELL_TRANS = [
     (r"\bthay\b", "Thay", "更换"),
     (r"\btach\b|\btách\b", "Tách", "拆卸"),
@@ -48,7 +48,12 @@ DICT_SPELL_TRANS = [
     (r"\bcan chinh\b|\bcăn chỉnh\b", "Căn chỉnh", "校准"),
     (r"\bdung may\b|\bdừng máy\b", "Dừng máy", "停机"),
     (r"\bxu ly\b|\bxử lý\b", "Xử lý", "处理"),
-    (r"\blam\b|\blàm\b", "Làm", "做"),
+    (r"\blam\b|\blàm\b|\btao\b|\btạo\b", "Làm", "制作"),
+    (r"\bao lo\b|\báo lô\b|\blo tao\b|\blô bao\b", "áo lô", "辊套"),
+    (r"\bkeo gian\b|\bkéo giản\b|\bkeo dãn\b|\bkéo dãn\b", "kéo giản", "牵引"),
+    (r"\bluoi loc hat\b|\blưới lọc hạt\b", "lưới lọc hạt", "切粒滤网"),
+    (r"\blo\b|\blỗ\b", "lỗ", "孔径"),
+    (r"\bdai\b|\bdài\b", "dài", "长"),
     (r"\bdau khuôn\b|\bdau khuon\b|\bđầu khuôn\b", "đầu khuôn", "模头"),
     (r"\bkhuon\b|\bkhuôn\b", "khuôn", "模具"),
     (r"\bvan giam ap\b|\bvan giảm áp\b", "van giảm áp", "减压阀"),
@@ -93,7 +98,21 @@ def auto_correct_and_translate(text):
                 zh_parts.append(zh_word)
 
     viet_text = viet_text[0].upper() + viet_text[1:] if len(viet_text) > 0 else viet_text
-    zh_text = " ".join(zh_parts) if zh_parts else "处理"
+    
+    # Xử lý các con số kèm đơn vị (ví dụ 4mm -> 4mm孔径, 50cm -> 50cm长)
+    digits_mm = re.findall(r'(\d+)\s*mm', viet_text, re.IGNORECASE)
+    digits_cm = re.findall(r'(\d+)\s*cm', viet_text, re.IGNORECASE)
+    
+    zh_final = []
+    for w in zh_parts:
+        if w == "孔径" and digits_mm:
+            zh_final.append(f"{digits_mm[0]}mm孔径")
+        elif w == "长" and digits_cm:
+            zh_final.append(f"{digits_cm[0]}cm长")
+        else:
+            zh_final.append(w)
+
+    zh_text = "".join(zh_final) if zh_final else "处理"
     return viet_text, zh_text
 
 def format_bilingual_content(raw_text):
@@ -161,8 +180,7 @@ if st.session_state.db.get("last_reset") != reset_key:
 def check_password(pwd):
     return pwd == "230"
 
-# --- TẠO BÁO CÁO THEO TỪNG CẤU HÌNH ---
-# 1. Báo cáo chung TRANG 1 & TRANG 2
+# --- TẠO BÁO CÁO ---
 report_text_p1_p2 = f"""BÁO CÁO CÔNG VIỆC BẢO TRÌ / 维修工作报告
 Ngày / 日期: {current_date_str} - {current_time_str}
 
@@ -186,7 +204,6 @@ if st.session_state.db.get("repairs"):
 else:
     report_text_p1_p2 += "(Không có máy dừng sửa / 无停机维修)\n"
 
-# 2. Báo cáo riêng TRANG 3 (Giao ca)
 report_text_p3_only = f"""BÁO CÁO GIAO CA (TRANG 3) / 交接班报告
 Ngày / 日期: {current_date_str} - {current_time_str}
 
@@ -199,7 +216,6 @@ else:
     report_text_p3_only += "(Chưa có nội dung giao ca / 暂无交接事项)\n"
 
 def render_copy_button(page_num):
-    # Chọn nội dung báo cáo: Trang 1 & 2 dùng chung report_text_p1_p2, Trang 3 dùng riêng report_text_p3_only
     text_content = report_text_p3_only if page_num == 3 else report_text_p1_p2
     lines = [line for line in text_content.strip().split("\n") if line]
     
