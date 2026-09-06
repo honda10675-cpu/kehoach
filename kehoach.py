@@ -37,17 +37,18 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH ---
+# --- BỘ TỪ ĐIỂN TỰ ĐỘNG SỬA LỖI & DỊCH (ĐÃ BỔ SUNG ĐẦY ĐỦ) ---
 DICT_SPELL_TRANS = [
     (r"\bthay\b", "Thay", "更换"),
     (r"\btach\b|\btách\b", "Tách", "拆卸"),
     (r"\bsua\b|\bsửa\b", "Sửa", "维修"),
     (r"\blech\b|\blệch\b", "lệch", "偏位"),
-    (r"\blap\b|\blắp\b", "Lắp", "安装"),
+    (r"\blap\b|\blắp\b|\brap\b|\bráp\b", "Ráp", "安装"),
     (r"\bve sinh\b|\bvệ sinh\b", "Vệ sinh", "清理"),
     (r"\bcan chinh\b|\bcăn chỉnh\b", "Căn chỉnh", "校准"),
     (r"\bdung may\b|\bdừng máy\b", "Dừng máy", "停机"),
     (r"\bxu ly\b|\bxử lý\b", "Xử lý", "处理"),
+    (r"\blam\b|\blàm\b", "Làm", "做"),
     (r"\bdau khuôn\b|\bdau khuon\b|\bđầu khuôn\b", "đầu khuôn", "模头"),
     (r"\bkhuon\b|\bkhuôn\b", "khuôn", "模具"),
     (r"\bvan giam ap\b|\bvan giảm áp\b", "van giảm áp", "减压阀"),
@@ -73,6 +74,11 @@ DICT_SPELL_TRANS = [
     (r"\btren\b|\btrên\b", "trên", "上"),
     (r"\bvi tri\b|\bvị trí\b", "vị trí", "位置"),
     (r"\bnhiet do\b|\bnhiệt độ\b", "nhiệt độ", "温度"),
+    (r"\bhut phe\b|\bhút phế\b", "hút phế", "吸废料"),
+    (r"\bhut\b|\bhút\b", "hút", "吸"),
+    (r"\bphe\b|\bphế\b", "phế", "废料"),
+    (r"\bluoi loc nuoc\b|\blưới lọc nước\b", "lưới lọc nước", "滤水网"),
+    (r"\bluoi loc\b|\blưới lọc\b", "lưới lọc", "滤网"),
 ]
 
 def auto_correct_and_translate(text):
@@ -111,8 +117,8 @@ def get_supabase_client():
         key = st.secrets.get("SUPABASE_KEY")
         if url and key:
             return create_client(url, key)
-    except Exception as e:
-        st.error(f"Lỗi cấu hình Supabase: {e}")
+    except Exception:
+        pass
     return None
 
 supabase = get_supabase_client()
@@ -123,8 +129,8 @@ def load_data():
             res = supabase.table("app_data").select("*").eq("id", 1).execute()
             if res.data and len(res.data) > 0:
                 return res.data[0]["content"]
-        except Exception as e:
-            st.error(f"Không thể đọc dữ liệu từ Supabase: {e}")
+        except Exception:
+            pass
     return {"tasks": [], "repairs": [], "handoffs": [], "last_reset": ""}
 
 def save_data(data):
@@ -134,13 +140,10 @@ def save_data(data):
             supabase.table("app_data").upsert({"id": 1, "content": data}).execute()
             return True
         except Exception as e:
-            st.error(f"⚠️ Không thể lưu xuống Supabase: {e}")
+            st.error(f"⚠️ Lỗi lưu dữ liệu: {e}")
             return False
-    else:
-        st.warning("⚠️ Chưa kết nối Supabase, dữ liệu tạm chỉ lưu trong phiên làm việc hiện tại!")
-        return True
+    return True
 
-# Bắt buộc tải dữ liệu vào session nếu chưa có
 if "db" not in st.session_state:
     st.session_state.db = load_data()
 
@@ -203,10 +206,8 @@ def render_copy_button(page_num):
         else:
             items_html += f'<div style="padding:4px 0; color:#334155; font-size:14px; border-bottom:1px dashed #f1f5f9;">{escaped}</div>'
 
-    box_display = "block" if page_num == 1 else "none"
-
     custom_html = f"""
-    <div id="report-box-{page_num}" style="display: {box_display}; background:#ffffff; border:2px solid #2563eb; border-radius:10px; padding:15px; margin-bottom:10px; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
+    <div id="report-box-{page_num}" style="display: block; background:#ffffff; border:2px solid #2563eb; border-radius:10px; padding:15px; margin-bottom:12px; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
         <div style="text-align:center; font-weight:bold; color:#2563eb; font-size:16px; margin-bottom:10px;">
             📋 BẢNG TIẾN ĐỘ BẢO TRÌ / 维修进度表
         </div>
@@ -217,11 +218,7 @@ def render_copy_button(page_num):
     <script>
     function generateAndCopy_{page_num}() {{
         const element = document.getElementById('report-box-{page_num}');
-        element.style.display = 'block';
         html2canvas(element, {{ scale: 2 }}).then(canvas => {{
-            if ("{box_display}" === "none") {{
-                element.style.display = 'none';
-            }}
             canvas.toBlob(blob => {{
                 try {{
                     const item = new ClipboardItem({{ "image/png": blob }});
@@ -239,14 +236,14 @@ def render_copy_button(page_num):
 
     function openImageWin(canvas) {{
         const win = window.open("");
-        win.document.write('<p style="font-family:sans-serif; font-size:16px; font-weight:bold; color:#2563eb;">Ấn giữ vào hình bên dưới chọn "Sao chép hình ảnh" hoặc "Tải về" để gửi Zalo/WeChat:</p>');
+        win.document.write('<p style="font-family:sans-serif; font-size:16px; font-weight:bold; color:#2563eb;">Ấn giữ vào hình chọn "Sao chép hình ảnh" hoặc "Tải về" để gửi Zalo/WeChat:</p>');
         win.document.write('<img src="' + canvas.toDataURL() + '" style="border:1px solid #ccc; max-width:100%;" />');
     }}
     </script>
     
     <button onclick="generateAndCopy_{page_num}()" style="
         width: 100%;
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        background: #2563eb;
         color: white;
         border: none;
         padding: 12px;
@@ -254,14 +251,13 @@ def render_copy_button(page_num):
         font-weight: bold;
         border-radius: 8px;
         cursor: pointer;
-        margin-bottom: 15px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        margin-bottom: 10px;
     ">
         📷 SAO CHÉP HÌNH BẢNG GỬI ZALO/WECHAT
     </button>
     """
-    comp_height = 280 if page_num == 1 else 65
-    st.components.v1.html(custom_html, height=comp_height, scrolling=False)
+    comp_height = 450 if page_num == 1 else 350
+    st.components.v1.html(custom_html, height=comp_height, scrolling=True)
 
 # --- TIÊU ĐỀ CHÍNH ---
 st.markdown("<h3 style='text-align: center; color: #0f172a; margin-bottom: 5px;'>QUẢN LÝ BẢO TRÌ MÁY / 设备维修管理</h3>", unsafe_allow_html=True)
@@ -284,7 +280,6 @@ if "TRANG 1" in page:
             if st.form_submit_button("XÁC NHẬN / 确认"):
                 if pass_in == "789":
                     st.session_state.page1_authenticated = True
-                    st.success("Xác nhận thành công / 验证成功!")
                     st.rerun()
                 else:
                     st.error("Mật khẩu không đúng / 密码错误!")
@@ -321,7 +316,6 @@ if "TRANG 1" in page:
                 if st.button("Hoàn Thành / 完成", use_container_width=True):
                     selected_task["status"] = "done"
                     save_data(st.session_state.db)
-                    st.success("Đã hoàn thành / 已完成!")
                     st.rerun()
 
             with col_act2:
@@ -356,7 +350,6 @@ if "TRANG 1" in page:
                             })
                             save_data(st.session_state.db)
                             st.session_state["show_pop_handoff"] = False
-                            st.success("Đã bàn giao sang Trang 3 / 已交接至第3页!")
                             st.rerun()
                         else:
                             st.error("Bắt buộc điền đầy đủ / 请填写完整")
@@ -375,7 +368,6 @@ if "TRANG 1" in page:
                             selected_task["is_priority"] = e_prio
                             save_data(st.session_state.db)
                             st.session_state["show_pop_edit"] = False
-                            st.success("Đã cập nhật / 已更新!")
                             st.rerun()
                         else:
                             st.error("Mật khẩu không đúng / 密码错误")
@@ -389,7 +381,6 @@ if "TRANG 1" in page:
                             st.session_state.db["tasks"].remove(selected_task)
                             save_data(st.session_state.db)
                             st.session_state["show_pop_del"] = False
-                            st.success("Đã xóa / 已删除!")
                             st.rerun()
                         else:
                             st.error("Mật khẩu không đúng / 密码错误")
@@ -421,7 +412,6 @@ if "TRANG 1" in page:
                     
                     st.session_state.db["tasks"].append(new_item)
                     save_data(st.session_state.db)
-                    st.rerun()
                 else:
                     st.error("Vui lòng điền đầy đủ thông tin (*) / 请填写完整")
 
@@ -448,7 +438,6 @@ elif "TRANG 2" in page:
                     "time": current_time_str
                 })
                 save_data(st.session_state.db)
-                st.rerun()
             else:
                 st.error("Bắt buộc điền thông tin (*) / 请填写完整")
 
@@ -517,7 +506,6 @@ elif "TRANG 3" in page:
                     "time": current_time_str
                 })
                 save_data(st.session_state.db)
-                st.rerun()
             else:
                 st.error("Vui lòng nhập đầy đủ (*) / 请填写完整")
 
