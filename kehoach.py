@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Thêm thư viện html2canvas để hỗ trợ sao chép ảnh
+# Thêm thư viện html2canvas
 st.markdown("""
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -45,15 +45,19 @@ st.markdown("""
         margin-bottom: 6px;
     }
 
-    .report-image-box {
+    /* Khung ẩn chứa nội dung vẽ hình ảnh báo cáo */
+    .report-capture-area {
         background-color: #ffffff;
         border: 2px solid #2563eb;
-        border-radius: 10px;
-        padding: 16px;
+        border-radius: 8px;
+        padding: 14px;
         color: #0f172a;
         font-size: 0.95rem;
         line-height: 1.5;
-        margin-bottom: 12px;
+        position: absolute;
+        left: -9999px;
+        top: -9999px;
+        width: 450px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -99,13 +103,12 @@ if st.session_state.db["last_reset"] != reset_key:
 def check_password(pwd):
     return pwd == "230"
 
-# --- TẠO VĂN BẢN BÁO CÁO CHO TRANG 1 (KHÔNG CÓ MỤC 2 & 3, KHÔNG ICON) ---
+# --- TẠO VĂN BẢN BÁO CÁO TRANG 1 ---
 report_text_p1 = f"""BÁO CÁO CÔNG VIỆC BẢO TRÌ / 维修工作报告
 Ngày / 日期: {current_date_str} - {current_time_str}
 
 KẾ HOẠCH CÔNG VIỆC (TRANG 1) / 工作计划:
 """
-
 if st.session_state.db["tasks"]:
     for i, task in enumerate(st.session_state.db["tasks"], start=1):
         p_flag = "[ƯU TIÊN/优先] " if task["is_priority"] else ""
@@ -114,7 +117,7 @@ if st.session_state.db["tasks"]:
 else:
     report_text_p1 += "(Chưa có dữ liệu / 暂无数据)\n"
 
-# --- TẠO VĂN BẢN BÁO CÁO ĐẦY ĐỦ CHO TRANG 2 & 3 ---
+# --- TẠO VĂN BẢN BÁO CÁO TRANG 2 & 3 ---
 report_text_full = report_text_p1 + f"""
 MÁY DỪNG SỬA (TRANG 2) / 停机维修:
 """
@@ -134,28 +137,27 @@ if st.session_state.db["handoffs"]:
 else:
     report_text_full += "(Chưa có nội dung giao ca / 暂无交接事项)\n"
 
-# --- NÚT SAO CHÉP DẠNG HÌNH ẢNH & VĂN BẢN ---
-def render_copy_section(page_num):
+# --- NÚT SAO CHÉP HÌNH BẢNG TRỰC TIẾP ---
+def render_copy_button(page_num):
     text_content = report_text_p1 if page_num == 1 else report_text_full
     html_lines = "<br>".join([html.escape(line) for line in text_content.strip().split("\n")])
 
     copy_js = f"""
-    <div id="report-card-{page_num}" class="report-image-box">
+    <div id="capture-zone-{page_num}" class="report-capture-area">
         {html_lines}
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
-    function copyImageAndText_{page_num}() {{
-        const element = document.getElementById('report-card-{page_num}');
-        html2canvas(element).then(canvas => {{
+    function copyTableImage_{page_num}() {{
+        const element = document.getElementById('capture-zone-{page_num}');
+        html2canvas(element, {{ scale: 2 }}).then(canvas => {{
             canvas.toBlob(blob => {{
                 try {{
                     const item = new ClipboardItem({{ "image/png": blob }});
                     navigator.clipboard.write([item]).then(() => {{
-                        alert('✅ ĐÃ SAO CHÉP HÌNH ẢNH BÁO CÁO THÀNH CÔNG!\\n已成功复制图片报告！');
+                        alert('✅ ĐÃ SAO CHÉP HÌNH BẢNG THÀNH CÔNG!\\nAnh mở Zalo/WeChat bấm Dán (Ctrl+V) để gửi đi ngay.');
                     }}).catch(err => {{
-                        // Fallback text copy
                         navigator.clipboard.writeText({json.dumps(text_content)}).then(() => {{
                             alert('✅ ĐÃ SAO CHÉP VĂN BẢN BÁO CÁO!\\n已成功复制文本报告！');
                         }});
@@ -169,7 +171,7 @@ def render_copy_section(page_num):
         }});
     }}
     </script>
-    <button onclick="copyImageAndText_{page_num}()" style="
+    <button onclick="copyTableImage_{page_num}()" style="
         width: 100%;
         background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
         color: white;
@@ -182,17 +184,17 @@ def render_copy_section(page_num):
         box-shadow: 0 3px 8px rgba(37, 99, 235, 0.3);
         margin-bottom: 12px;
     ">
-        📋 COPPY BÁO CÁO DẠNG HÌNH ẢNH / 复制图片报告
+        📋 SAO CHÉP HÌNH BẢNG / 复制图片表格
     </button>
     """
-    st.components.v1.html(copy_js, height=260)
+    st.components.v1.html(copy_js, height=60)
 
 # --- TIÊU ĐỀ CHÍNH ---
 st.markdown("<h3 style='text-align: center; color: #0f172a; margin-bottom: 5px;'>QUẢN LÝ BẢO TRÌ MÁY / 设备维修管理</h3>", unsafe_allow_html=True)
 
 page = st.radio(
     "",
-    ["TRANG 1: KẾ HOẠCH / 1. 工作计划", "TRANG 2: DỪNG MÁY / 2. 停机维修", "TRANG 3: GIAO CA & CHỦ QUẢN / 3. 交接班与主管查看"],
+    ["TRANG 1: KẾ HOẠCH / 1. 工作计划", "TRANG 2: DỪNG MÁY / 2. 停机维修", "TRANG 3: GIAO CA / 3. 交接班"],
     horizontal=True,
     label_visibility="collapsed"
 )
@@ -200,7 +202,7 @@ page = st.radio(
 st.divider()
 
 # ==========================================
-# TRANG 1: KẾ HOẠCH CÔNG VIỆC (MẬT KHẨU 789)
+# TRANG 1: KẾ HOẠCH CÔNG VIỆC
 # ==========================================
 if "TRANG 1" in page:
     if not st.session_state.page1_authenticated:
@@ -217,10 +219,8 @@ if "TRANG 1" in page:
     else:
         st.subheader("Ghi Kế Hoạch Công Việc Ngày / 每日工作计划登记")
 
-        # NÚT COPPY DẠNG HÌNH ẢNH CHO TRANG 1
-        render_copy_section(1)
+        render_copy_button(1)
 
-        # DANH SÁCH CÔNG VIỆC
         st.markdown("### DANH SÁCH CÔNG VIỆC / 工作列表")
 
         pending_list = [t for t in st.session_state.db["tasks"] if t["status"] == "pending"]
@@ -370,8 +370,7 @@ elif "TRANG 2" in page:
                 st.error("Bắt buộc điền thông tin (*)")
 
     st.divider()
-    # NÚT COPPY DẠNG HÌNH ẢNH TRANG 2
-    render_copy_section(2)
+    render_copy_button(2)
 
     st.markdown("### DANH SÁCH MÁY DỪNG SỬA / 停机维修列表")
 
@@ -411,7 +410,7 @@ elif "TRANG 2" in page:
 # TRANG 3: GIAO CA
 # ==========================================
 elif "TRANG 3" in page:
-    st.subheader("Giao Ca & Chủ Quản Xem / 交接班与主管查看")
+    st.subheader("Giao Ca / 交接班")
     st.caption("Dữ liệu Trang 3 sẽ tự động xoá sạch vào giờ thực tế 18:00 và 05:00 hằng ngày.")
 
     with st.form("form_handoff", clear_on_submit=True):
@@ -438,8 +437,7 @@ elif "TRANG 3" in page:
                 st.error("Vui lòng nhập đầy đủ (*)")
 
     st.divider()
-    # NÚT COPPY DẠNG HÌNH ẢNH TRANG 3
-    render_copy_section(3)
+    render_copy_button(3)
 
     st.markdown("### DỮ LIỆU GIAO CA TRONG NGÀY / 当天交接数据")
 
