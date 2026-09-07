@@ -3,7 +3,6 @@ from supabase import create_client, Client
 import datetime
 import pytz
 import html
-import json
 import re
 
 # --- CẤU HÌNH TRANG ---
@@ -37,9 +36,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BỘ TỪ ĐIỂN KỸ THUẬT NHÀ MÁY CHUYÊN SÂU ---
+# --- BỘ TỪ ĐIỂN KỸ THUẬT NHÀ MÁY CHUYÊN SÂU & ĐẦY ĐỦ ---
 DICT_SPELL_TRANS = [
     (r"\bthay\b", "Thay", "更换"),
+    (r"\bthao nap\b|\btháo nắp\b", "tháo nắp", "拆开盖子"),
+    (r"\bthao\b|\btháo\b", "Tháo", "拆卸"),
     (r"\btach\b|\btách\b", "Tách", "拆卸"),
     (r"\bsua\b|\bsửa\b", "Sửa", "维修"),
     (r"\blech\b|\blệch\b", "lệch", "偏位"),
@@ -67,12 +68,15 @@ DICT_SPELL_TRANS = [
     (r"\bbon nuoc nong\b|\bbồn nước nóng\b", "bồn nước nóng", "热水箱"),
     (r"\bbac dan\b|\bvong bi\b|\bbạc đạn\b|\bvòng bi\b", "bạc đạn", "轴承"),
     (r"\bcot dao\b|\bcốt dao\b|\btruc dao\b|\btrục dao\b", "cốt dao", "刀轴"),
+    (r"\bthu cuon nhieu vi tri mat chot\b|\bthu cuộn nhiều vị trí mất chốt\b", "thu cuộn nhiều vị trí mất chốt", "收卷多处掉销/掉卡"),
     (r"\bthu cuon\b|\bthu cuộn\b|\bcuon\b|\bcuộn\b", "thu cuộn", "收卷"),
+    (r"\bmat chot\b|\bmất chốt\b", "m mất chốt", "掉销"),
+    (r"\bnhieu vi tri\b|\bnhiều vị trí\b", "nhiều vị trí", "多处"),
     (r"\bhop so\b|\bhộp số\b", "hộp số", "齿轮箱"),
     (r"\btruc vit\b|\btrục vít\b", "trục vít", "螺杆"),
     (r"\btruc\b|\btrục\b", "trục", "轴"),
     (r"\btach nuoc\b|\btách nước\b", "tách nước", "脱水"),
-    (r"\bbien tan\b|\bbiến tần\b", "biến tần", "变频器"),
+    (r"\bbien tan\b|\bbiến tần\b", "变频器"),
     (r"\bdong co\b|\bmotor\b|\bđộng cơ\b", "động cơ", "电机"),
     (r"\bxilanh\b|\bxi lanh\b", "xi lanh", "气缸"),
     (r"\bday curoa\b|\bcu roa\b", "dây curoa", "皮带"),
@@ -80,6 +84,12 @@ DICT_SPELL_TRANS = [
     (r"\bmay dun\b|\bmáy đùn\b", "máy đùn", "挤出机"),
     (r"\bmay ben\b|\bmáy bện\b", "máy bện", "绞线机"),
 ]
+
+def clean_machine_name(name):
+    if not name:
+        return ""
+    parts = name.split('/')
+    return parts[0].strip()
 
 def auto_translate_smart(text):
     if not text:
@@ -161,7 +171,6 @@ if "db" not in st.session_state:
 if "page1_authenticated" not in st.session_state:
     st.session_state.page1_authenticated = False
 
-# --- LOGIC TỰ ĐỘNG XÓA TRANG 3 VÀO 05:00 VÀ 18:00 HẰNG NGÀY ---
 is_after_18 = (current_hour > 18) or (current_hour == 18 and current_minute >= 0)
 is_after_05 = (current_hour > 5 or (current_hour == 5 and current_minute >= 0)) and not is_after_18
 
@@ -190,8 +199,9 @@ def get_report_text(report_type):
         tasks = st.session_state.db.get("tasks", [])
         if tasks:
             for i, task in enumerate(tasks, start=1):
+                clean_m = clean_machine_name(task['machine'])
                 st_flag = "[Đã xong / 已完成]" if task.get("status") == "done" else ("[Đã giao ca / 已交接]" if task.get("status") == "handoff" else "[Đang làm / 进行中]")
-                text += f"{i}/ {task['machine']} - {task['content']} ({st_flag})\n"
+                text += f"{i}/ {clean_m} - {task['content']} ({st_flag})\n"
         else:
             text += "(Chưa có dữ liệu / 暂无数据)\n"
 
@@ -199,8 +209,9 @@ def get_report_text(report_type):
         repairs = st.session_state.db.get("repairs", [])
         if repairs:
             for i, rep in enumerate(repairs, start=1):
+                clean_m = clean_machine_name(rep['machine'])
                 r_flag = "[Đã xong / 已修好]" if rep.get("is_done") else "[Đang sửa / 维修中]"
-                text += f"{i}/ {rep['machine']} - {rep['content']} ({r_flag})\n"
+                text += f"{i}/ {clean_m} - {rep['content']} ({r_flag})\n"
         else:
             text += "(Không có máy dừng sửa / 无停机维修)\n"
         return text
@@ -213,7 +224,8 @@ def get_report_text(report_type):
         handoffs = st.session_state.db.get("handoffs", [])
         if handoffs:
             for i, ho in enumerate(handoffs, start=1):
-                text += f"{i}/ {ho['machine']} (Người giao / 交接人: {ho.get('sender', 'NV')}): {ho['content']}\n"
+                clean_m = clean_machine_name(ho['machine'])
+                text += f"{i}/ {clean_m}: {ho['content']}\n"
         else:
             text += "(Chưa có nội dung giao ca / 暂无交接事项)\n"
         return text
@@ -242,6 +254,14 @@ def render_copy_button(page_num):
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
+    function downloadCanvas_{page_num}(canvas) {{
+        const link = document.createElement('a');
+        link.download = 'Bao_Cao_Bao_Tri_Trang_{page_num}.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        alert('📥 ĐÃ TẢI ẢNH VỀ MÁY!\\nAnh mở Zalo hoặc WeChat bấm chọn Tệp/Hình ảnh để gửi đi nhé.');
+    }}
+
     function generateAndCopy_{page_num}() {{
         const element = document.getElementById('report-box-{page_num}');
         html2canvas(element, {{ scale: 2 }}).then(canvas => {{
@@ -258,14 +278,6 @@ def render_copy_button(page_num):
                 }}
             }});
         }});
-    }}
-
-    function downloadCanvas_{page_num}(canvas) {{
-        const link = document.createElement('a');
-        link.download = 'Bao_Cao_Bao_Tri_Trang_{page_num}.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        alert('📥 ĐÃ TẢI ẢNH VỀ MÁY!\\nAnh mở Zalo hoặc WeChat bấm chọn Tệp/Hình ảnh để gửi đi nhé.');
     }}
     </script>
     
@@ -383,7 +395,7 @@ if "TRANG 1" in page:
                     if st.form_submit_button("Xác Nhận Bàn Giao / 确认交接"):
                         if progress_txt.strip() and next_task_txt.strip():
                             selected_task["status"] = "handoff"
-                            formatted_handoff = format_bilingual_content(f"[Tiến độ: {progress_txt}] - Kế hoạch tiếp: {next_task_txt}")
+                            formatted_handoff = format_bilingual_content(f"Tiến độ: {progress_txt} - Kế hoạch tiếp: {next_task_txt}")
                             if "handoffs" not in st.session_state.db:
                                 st.session_state.db["handoffs"] = []
                             st.session_state.db["handoffs"].append({
@@ -534,7 +546,6 @@ elif "TRANG 3" in page:
 
     render_copy_button(3)
 
-    # NÚT RESET BẢNG GIAO CA BẰNG TAY
     col_r1, col_r2 = st.columns([2, 1])
     with col_r2:
         if st.button("🔄 RESET LÀM SẠCH BẢNG GIAO CA", use_container_width=True):
@@ -588,9 +599,10 @@ elif "TRANG 3" in page:
     if done_tasks:
         st.markdown("#### Công việc đã hoàn thành / 已完成工作")
         for dt in done_tasks:
+            clean_dt_m = clean_machine_name(dt['machine'])
             st.markdown(f"""
             <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px;">
-                <strong style="color: #166534;">{html.escape(dt['machine'])}</strong>
+                <strong style="color: #166534;">{html.escape(clean_dt_m)}</strong>
                 <div style="font-size: 0.9rem; color: #15803d;">{html.escape(dt['content'])}</div>
             </div>
             """, unsafe_allow_html=True)
@@ -602,9 +614,10 @@ elif "TRANG 3" in page:
         st.info("Chưa có nội dung bàn giao ca / 暂无交接内容")
     else:
         for idx, h in enumerate(h_list, start=1):
+            clean_h_m = clean_machine_name(h['machine'])
             st.markdown(f"""
             <div class="row-card">
-                <strong>{idx}/ {html.escape(h['machine'])}</strong> (Người giao / 交接人: {html.escape(h.get('sender', 'NV'))}) - <span style="color: #64748b; font-size: 0.85rem;">{h['time']}</span><br>
+                <strong>{idx}/ {html.escape(clean_h_m)}</strong> (Người giao / 交接人: {html.escape(h.get('sender', 'NV'))}) - <span style="color: #64748b; font-size: 0.85rem;">{h['time']}</span><br>
                 <span style="color: #1e293b; font-size: 0.95rem;">Nội dung / 内容: <strong>{html.escape(h['content'])}</strong></span>
             </div>
             """, unsafe_allow_html=True)
@@ -612,7 +625,7 @@ elif "TRANG 3" in page:
         if h_list:
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("### THAO TÁC GIAO CA / 交接操作")
-            ho_options = {f"{idx}/ {h['machine']} - {h['content']}": h for idx, h in enumerate(h_list, start=1)}
+            ho_options = {f"{idx}/ {clean_machine_name(h['machine'])} - {h['content']}": h for idx, h in enumerate(h_list, start=1)}
             selected_ho_label = st.selectbox("Chọn mục giao ca cần thao tác / 选择交接项:", list(ho_options.keys()))
             selected_ho = ho_options[selected_ho_label]
 
