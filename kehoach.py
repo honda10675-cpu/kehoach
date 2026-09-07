@@ -41,75 +41,72 @@ st.markdown("""
 
 # --- BỘ TỪ ĐIỂN KỸ THUẬT NHÀ MÁY CHUYÊN SÂU ---
 DICT_SPELL_TRANS = [
-    (r"\bthay\b", "THAY", "更换"),
-    (r"\bthao nap\b|\btháo nắp\b", "THÁO NẮP", "拆开盖子"),
-    (r"\bthao\b|\btháo\b", "THÁO", "拆卸"),
-    (r"\btach\b|\btách\b", "TÁCH", "拆卸"),
-    (r"\bsua\b|\bsửa\b", "SỬA", "维修"),
-    (r"\blech\b|\blệch\b", "LỆCH", "偏位"),
-    (r"\blap\b|\blắp\b|\brap\b|\bráp\b", "RÁP", "安装"),
-    (r"\bve sinh\b|\bvệ sinh\b", "VỆ SINH", "清理"),
-    (r"\bcan chinh\b|\bcăn chỉnh\b", "CĂN CHỈNH", "校准"),
-    (r"\bdung may\b|\bdừng máy\b", "DỪNG MÁY", "停机"),
-    (r"\bxu ly\b|\bxử lý\b", "XỬ LÝ", "处理"),
-    (r"\blam\b|\blàm\b", "LÀM", "做"),
-    (r"\bhu\b|\bhư\b", "HƯ", "损坏"),
-    (r"\bchay sai toc do\b|\bchạy sai tốc độ\b", "CHẠY SAI TỐC ĐỘ", "运行速度错误"),
-    (r"\bdinh hinh\b|\bđịnh hình\b", "ĐỊNH HÌNH", "定型"),
-    (r"\bkhop xoay\b|\bkhớp xoay\b", "KHỚP XOAY", "旋转接头"),
-    (r"\bnuoc\b|\bnước\b", "NƯỚC", "水"),
-    (r"\bao lo keo gian\b|\báo lô kéo giản\b|\báo lô kéo giãn\b", "ÁO LÔ KÉO GIÃN", "拉伸辊套"),
-    (r"\bao lo\b|\báo lô\b", "ÁO LÔ", "辊套"),
-    (r"\blo keo\b|\blô kéo\b", "LÔ KÉO", "牵引辊"),
-    (r"\blo\b|\blô\b", "LÔ", "压辊"),
-    (r"\bkeo gian\b|\bkéo giản\b|\bkéo giãn\b", "KÉO GIÃN", "拉伸"),
-    (r"\bkeo\b|\bkéo\b", "KÉO", "牵引"),
-    (r"\bdau khuôn\b|\bdau khuon\b|\bđầu khuôn\b", "ĐẦU KHUÔN", "模头"),
-    (r"\bkhuon\b|\bkhuôn\b", "KHUÔN", "模具"),
-    (r"\bvan giam ap\b|\bvan giảm áp\b", "VAN GIẢM ÁP", "减压阀"),
-    (r"\bhoi nong\b|\bhơi nóng\b", "HƠI NÓNG", "热蒸汽"),
-    (r"\bbon nuoc nong\b|\bbồn nước nóng\b", "BỒN NƯỚC NÓNG", "热水箱"),
-    (r"\bbac dan\b|\bvong bi\b|\bbạc đạn\b|\bvòng bi\b", "BẠC ĐẠN", "轴承"),
-    (r"\bcot dao\b|\bcốt dao\b|\btruc dao\b|\btrục dao\b", "CỐT DAO", "刀轴"),
-    (r"\bthu cuon nhieu vi tri mat chot\b|\bthu cuộn nhiều vị trí mất chốt\b", "THU CUỘN NHIỀU VỊ TRÍ MẤT CHỐT", "收卷多处掉销/掉卡"),
-    (r"\bthu cuon\b|\bthu cuộn\b|\bcuon\b|\bcuộn\b", "THU CUỘN", "收卷"),
-    (r"\bmat chot\b|\bmất chốt\b", "MẤT CHỐT", "掉销"),
-    (r"\bnhieu vi tri\b|\bnhiều vị trí\b", "NHIỀU VỊ TRÍ", "多处"),
-    (r"\bhop so\b|\bhộp số\b", "HỘP SỐ", "齿轮箱"),
-    (r"\btruc vit\b|\btrục vít\b", "TRỤC VÍT", "螺杆"),
-    (r"\btruc\b|\btrục\b", "TRỤC", "轴"),
-    (r"\btach nuoc\b|\btách nước\b", "TÁCH NƯỚC", "脱水"),
-    (r"\bbien tan\b|\bbiến tần\b", "BIẾN TẦN", "变频器"),
-    (r"\bdong co\b|\bmotor\b|\bđộng cơ\b", "ĐỘNG CƠ", "电机"),
-    (r"\bxilanh\b|\bxi lanh\b", "XI LANH", "气缸"),
-    (r"\bday curoa\b|\bcu roa\b", "DÂY CUROA", "皮带"),
-    (r"\bcam bien\b|\bcảm biến\b", "CẢM BIẾN", "传感器"),
-    (r"\bmay dun\b|\bmáy đùn\b", "MÁY ĐÙN", "挤出机"),
-    (r"\bmay ben\b|\bmáy bện\b", "MÁY BỆN", "绞线机"),
+    (r"\bthay\b", "thay", "更换"),
+    (r"\bthao nap\b|\btháo nắp\b", "tháo nắp", "拆开盖子"),
+    (r"\bthao\b|\btháo\b", "tháo", "拆卸"),
+    (r"\btach\b|\btách\b", "tách", "拆卸"),
+    (r"\bsua\b|\bsửa\b", "sửa", "维修"),
+    (r"\blech\b|\blệch\b", "lệch", "偏位"),
+    (r"\blap\b|\blắp\b|\brap\b|\bráp\b", "ráp", "安装"),
+    (r"\bve sinh\b|\bvệ sinh\b", "vệ sinh", "清理"),
+    (r"\bcan chinh\b|\bcăn chỉnh\b", "căn chỉnh", "校准"),
+    (r"\bdung may\b|\bdừng máy\b", "dừng máy", "停机"),
+    (r"\bxu ly\b|\bxử lý\b", "xử lý", "处理"),
+    (r"\blam\b|\blàm\b", "làm", "做"),
+    (r"\bhu\b|\bhư\b", "hư", "损坏"),
+    (r"\bchay sai toc do\b|\bchạy sai tốc độ\b", "chạy sai tốc độ", "运行速度错误"),
+    (r"\bdinh hinh\b|\bđịnh hình\b", "định hình", "定型"),
+    (r"\bkhop xoay\b|\bkhớp xoay\b", "khớp xoay", "旋转接头"),
+    (r"\bnuoc\b|\bnước\b", "nước", "水"),
+    (r"\bao lo keo gian\b|\báo lô kéo giản\b|\báo lô kéo giãn\b", "áo lô kéo giãn", "拉伸辊套"),
+    (r"\bao lo\b|\báo lô\b", "áo lô", "辊套"),
+    (r"\blo keo\b|\blô kéo\b", "lô kéo", "牵引辊"),
+    (r"\blo\b|\blô\b", "lô", "压辊"),
+    (r"\bkeo gian\b|\bkéo giản\b|\bkéo giãn\b", "kéo giãn", "拉伸"),
+    (r"\bkeo\b|\bkéo\b", "kéo", "牵引"),
+    (r"\bdau khuôn\b|\bdau khuon\b|\bđầu khuôn\b", "đầu khuôn", "模头"),
+    (r"\bkhuon\b|\bkhuôn\b", "khuôn", "模具"),
+    (r"\bvan giam ap\b|\bvan giảm áp\b", "van giảm áp", "减压阀"),
+    (r"\bhoi nong\b|\bhơi nóng\b", "hơi nóng", "热蒸汽"),
+    (r"\bbon nuoc nong\b|\bbồn nước nóng\b", "bồn nước nóng", "热水箱"),
+    (r"\bbac dan\b|\bvong bi\b|\bbạc đạn\b|\bvòng bi\b", "bạc đạn", "轴承"),
+    (r"\bcot dao\b|\bcốt dao\b|\btruc dao\b|\btrục dao\b", "cốt dao", "刀轴"),
+    (r"\bthu cuon nhieu vi tri mat chot\b|\bthu cuộn nhiều vị trí mất chốt\b", "thu cuộn nhiều vị trí mất chốt", "收卷多处掉销/掉卡"),
+    (r"\bthu cuon\b|\bthu cuộn\b|\bcuon\b|\bcuộn\b", "thu cuộn", "收卷"),
+    (r"\bmat chot\b|\bmất chốt\b", "mất chốt", "掉销"),
+    (r"\bnhieu vi tri\b|\bnhiều vị trí\b", "nhiều vị trí", "多处"),
+    (r"\bhop so\b|\bhộp số\b", "hộp số", "齿轮箱"),
+    (r"\btruc vit\b|\btrục vít\b", "trục vít", "螺杆"),
+    (r"\btruc\b|\btrục\b", "trục", "轴"),
+    (r"\btach nuoc\b|\btách nước\b", "tách nước", "脱水"),
+    (r"\bbien tan\b|\bbiến tần\b", "biến tần", "变频器"),
+    (r"\bdong co\b|\bmotor\b|\bđộng cơ\b", "động cơ", "电机"),
+    (r"\bxilanh\b|\bxi lanh\b", "xi lanh", "气缸"),
+    (r"\bday curoa\b|\bcu roa\b", "dây curoa", "皮带"),
+    (r"\bcam bien\b|\bcảm biến\b", "cảm biến", "传感器"),
+    (r"\bmay dun\b|\bmáy đùn\b", "máy đùn", "挤出机"),
+    (r"\bmay ben\b|\bmáy bện\b", "máy bện", "绞线机"),
 ]
 
 def clean_machine_name(name):
     if not name:
         return ""
     parts = name.split('/')
-    return parts[0].strip().upper()
+    return parts[0].strip()
 
 def translate_online_mymemory(text):
-    """Hệ thống dịch trực tuyến kết hợp API online và từ điển nhà máy"""
     if not text:
         return "", ""
     if "/" in text or re.search(r'[\u4e00-\u9fff]', text):
-        return text.strip().upper(), ""
+        return text.strip(), ""
         
     raw_text = text.strip()
-    viet_text = raw_text.upper()
+    viet_text = raw_text
     
-    # Chuẩn hóa qua từ điển chuyên ngành trước
     for pattern, vi_correct, zh_word in DICT_SPELL_TRANS:
         if re.search(pattern, viet_text, flags=re.IGNORECASE):
             viet_text = re.sub(pattern, vi_correct, viet_text, flags=re.IGNORECASE)
 
-    # Gọi dịch online MyMemory API để dịch trọn vẹn không bị thiếu chữ
     zh_translated = ""
     try:
         encoded_text = urllib.parse.quote(raw_text)
@@ -122,7 +119,6 @@ def translate_online_mymemory(text):
     except Exception:
         pass
 
-    # Nếu dịch online lỗi, dùng từ điển bổ sung
     if not zh_translated or "MYMEMORY" in zh_translated.upper():
         zh_parts = []
         for pattern, vi_correct, zh_word in DICT_SPELL_TRANS:
@@ -173,7 +169,7 @@ def load_data():
                 return res.data[0]["content"]
         except Exception:
             pass
-    return {"tasks": [], "repairs": [], "handoffs": [], "last_reset": ""}
+    return {"tasks": [], "repairs": [], "handoffs": [], "manpower": {"mechanic": 17, "electric": 16}, "last_reset": ""}
 
 def save_data(data):
     st.session_state.db = data
@@ -212,29 +208,35 @@ def check_password(pwd):
     return pwd == "230"
 
 def get_report_text(report_type):
+    mp = st.session_state.db.get("manpower", {"mechanic": 17, "electric": 16})
+    mech_cnt = mp.get("mechanic", 17)
+    elec_cnt = mp.get("electric", 16)
+    total_cnt = mech_cnt + elec_cnt
+
     if report_type in [1, 2]:
         text = f"BÁO CÁO CÔNG VIỆC BẢO TRÌ / 维修工作报告\n"
-        text += f"Ngày / 日期: {current_date_str} - {current_time_str}\n\n"
+        text += f"Ngày / 日期: {current_date_str} - {current_time_str}\n"
+        text += f"Nhân lực / 人力: Cơ khí: {mech_cnt} | Điện: {elec_cnt} | Tổng: {total_cnt}\n\n"
         text += "KẾ HOẠCH CÔNG VIỆC (TRANG 1) / 工作计划:\n"
         
         tasks = st.session_state.db.get("tasks", [])
         if tasks:
             for i, task in enumerate(tasks, start=1):
                 clean_m = clean_machine_name(task['machine'])
-                st_flag = "[ĐÃ XONG / 已完成]" if task.get("status") == "done" else ("[ĐÃ GIAO CA / 已交接]" if task.get("status") == "handoff" else "[ĐANG LÀM / 进行中]")
-                text += f"{i}/ {clean_m} - {task['content'].upper()} ({st_flag})\n"
+                st_flag = "[Đã xong / 已完成]" if task.get("status") == "done" else ("[Đã giao ca / 已交接]" if task.get("status") == "handoff" else "[Đang làm / 进行中]")
+                text += f"{i}/ {clean_m} - {task['content']} ({st_flag})\n"
         else:
-            text += "(CHƯA CÓ DỮ LIỆU / 暂无数据)\n"
+            text += "(Chưa có dữ liệu / 暂无数据)\n"
 
         text += "\nMÁY DỪNG SỬA (TRANG 2) / 停机维修:\n"
         repairs = st.session_state.db.get("repairs", [])
         if repairs:
             for i, rep in enumerate(repairs, start=1):
                 clean_m = clean_machine_name(rep['machine'])
-                r_flag = "[ĐÃ XONG / 已修好]" if rep.get("is_done") else "[ĐANG SỬA / 维修中]"
-                text += f"{i}/ {clean_m} - {rep['content'].upper()} ({r_flag})\n"
+                r_flag = "[Đã xong / 已修好]" if rep.get("is_done") else "[Đang sửa / 维修中]"
+                text += f"{i}/ {clean_m} - {rep['content']} ({r_flag})\n"
         else:
-            text += "(KHÔNG CÓ MÁY DỪNG SỬA / 无停机维修)\n"
+            text += "(Không có máy dừng sửa / 无停机维修)\n"
         return text
 
     elif report_type == 3:
@@ -246,9 +248,9 @@ def get_report_text(report_type):
         if handoffs:
             for i, ho in enumerate(handoffs, start=1):
                 clean_m = clean_machine_name(ho['machine'])
-                text += f"{i}/ {clean_m}: {ho['content'].upper()}\n"
+                text += f"{i}/ {clean_m}: {ho['content']}\n"
         else:
-            text += "(CHƯA CÓ NỘI DUNG GIAO CA / 暂无交接事项)\n"
+            text += "(Chưa có nội dung giao ca / 暂无交接事项)\n"
         return text
 
 def render_copy_button(page_num):
@@ -259,23 +261,22 @@ def render_copy_button(page_num):
     for line in lines:
         escaped = html.escape(line)
         if "BÁO CÁO" in line or "KẾ HOẠCH" in line or "MÁY DỪNG" in line or "NỘI DUNG" in line:
-            items_html += f'<div style="font-weight:bold; color:#1e3a8a; margin-top:8px; border-bottom:1px solid #cbd5e1; padding-bottom:2px;">{escaped}</div>'
+            items_html += f'<div style="font-weight:bold; color:#1e3a8a; margin-top:8px; border-bottom:1px solid #cbd5e1; padding-bottom:2px; text-transform:uppercase;">{escaped}</div>'
         else:
             items_html += f'<div style="padding:4px 0; color:#1e293b; font-size:14px; font-weight:500; border-bottom:1px dashed #e2e8f0;">{escaped}</div>'
 
-    # Thiết lập màu nền nhạt riêng cho từng trang theo yêu cầu (Xanh, Trắng, Hồng)
     if page_num == 1:
-        bg_box = "#eff6ff"  # Xanh dương nhạt
+        bg_box = "#eff6ff"
         border_box = "#3b82f6"
         title_color = "#1d4ed8"
         title_box = "📋 BẢNG TIẾN ĐỘ BẢO TRÌ (TRANG 1)"
     elif page_num == 2:
-        bg_box = "#f8fafc"  # Trắng / Xám nhạt
+        bg_box = "#f8fafc"
         border_box = "#64748b"
         title_color = "#334155"
         title_box = "📋 BẢNG MÁY DỪNG SỬA (TRANG 2)"
     else:
-        bg_box = "#fdf2f8"  # Hồng nhạt
+        bg_box = "#fdf2f8"
         border_box = "#ec4899"
         title_color = "#be185d"
         title_box = "📋 BẢNG BÁO CÁO GIAO CA (TRANG 3)"
@@ -350,7 +351,7 @@ def render_copy_button(page_num):
         </button>
     </div>
     """
-    comp_height = 500 if page_num in [1, 2] else 380
+    comp_height = 520 if page_num in [1, 2] else 380
     st.components.v1.html(custom_html, height=comp_height, scrolling=True)
 
 st.markdown("<h3 style='text-align: center; color: #0f172a; margin-bottom: 5px; text-transform: uppercase;'>QUẢN LÝ BẢO TRÌ MÁY / 设备维修管理</h3>", unsafe_allow_html=True)
@@ -378,6 +379,39 @@ if "TRANG 1" in page:
                     st.error("Mật khẩu không đúng / 密码错误!")
     else:
         st.subheader("GHI KẾ HOẠCH CÔNG VIỆC NGÀY / 每日工作计划登记")
+
+        # NÚT KHAI BÁO NHÂN LỰC: CƠ KHÍ, ĐIỆN, TỔNG
+        if "show_manpower_form" not in st.session_state:
+            st.session_state.show_manpower_form = False
+
+        mp = st.session_state.db.get("manpower", {"mechanic": 17, "electric": 16})
+        mech_val = mp.get("mechanic", 17)
+        elec_val = mp.get("electric", 16)
+        total_val = mech_val + elec_val
+
+        col_mp1, col_mp2, col_mp3, col_mp4 = st.columns(4)
+        with col_mp1:
+            st.markdown(f"👨‍🔧 **Cơ khí:** {mech_val}")
+        with col_mp2:
+            st.markdown(f"⚡ **Điện:** {elec_val}")
+        with col_mp3:
+            st.markdown(f"📊 **Tổng:** {total_val}")
+        with col_mp4:
+            if st.button("⚙️ KHAI BÁO NHÂN LỰC", use_container_width=True):
+                st.session_state.show_manpower_form = not st.session_state.show_manpower_form
+
+        if st.session_state.show_manpower_form:
+            with st.form("form_manpower_update"):
+                st.markdown("### Cập nhật số lượng nhân lực ca trực / 更新值班人力")
+                m_mech = st.number_input("Số lượng thợ Cơ khí / 机械工人数", min_value=0, max_value=100, value=mech_val)
+                m_elec = st.number_input("Số lượng thợ Điện / 电工人数", min_value=0, max_value=100, value=elec_val)
+                if st.form_submit_button("Lưu Nhân Lực / 保存人力"):
+                    st.session_state.db["manpower"] = {"mechanic": int(m_mech), "electric": int(m_elec)}
+                    save_data(st.session_state.db)
+                    st.session_state.show_manpower_form = False
+                    st.success("Đã cập nhật nhân lực thành công!")
+                    st.rerun()
+
         render_copy_button(1)
 
         st.markdown("### DANH SÁCH CÔNG VIỆC / 工作列表")
@@ -388,7 +422,7 @@ if "TRANG 1" in page:
         else:
             for idx, t in enumerate(pending_list, start=1):
                 card_style = "row-card-priority" if t.get("is_priority") else "row-card"
-                prio_tag = "[ƯU TIÊN / 优先]" if t.get("is_priority") else ""
+                prio_tag = "[Ưu tiên / 优先]" if t.get("is_priority") else ""
 
                 st.markdown(f"""
                 <div class="{card_style}">
@@ -406,13 +440,13 @@ if "TRANG 1" in page:
 
             col_act1, col_act2, col_act3, col_act4 = st.columns(4)
             with col_act1:
-                if st.button("Hoàn Thành / 完成", use_container_width=True):
+                if st.button("Hoàn thành / 完成", use_container_width=True):
                     selected_task["status"] = "done"
                     save_data(st.session_state.db)
                     st.rerun()
 
             with col_act2:
-                if st.button("Giao Ca / 交接", use_container_width=True):
+                if st.button("Giao ca / 交接", use_container_width=True):
                     st.session_state["show_pop_handoff"] = True
 
             with col_act3:
@@ -425,10 +459,10 @@ if "TRANG 1" in page:
 
             if st.session_state.get("show_pop_handoff", False):
                 with st.form("form_pop_handoff"):
-                    st.markdown(f"GIAO CA CHO MÁY / 交接设备: **{selected_task['machine']}**")
-                    progress_txt = st.text_input("Tiến Độ Hiện Tại / 当前进度 *", placeholder="Ví dụ: Đã làm 80%")
-                    next_task_txt = st.text_area("Kế Hoạch Ca Sau / 下班计划 *", placeholder="Ví dụ: Tiếp tục lắp ráp")
-                    if st.form_submit_button("Xác Nhận Bàn Giao / 确认交接"):
+                    st.markdown(f"Giao ca cho máy / 交接设备: **{selected_task['machine']}**")
+                    progress_txt = st.text_input("Tiến độ hiện tại / 当前进度 *", placeholder="Ví dụ: Đã làm 80%")
+                    next_task_txt = st.text_area("Kế hoạch ca sau / 下班计划 *", placeholder="Ví dụ: Tiếp tục lắp ráp")
+                    if st.form_submit_button("Xác nhận bàn giao / 确认交接"):
                         if progress_txt.strip() and next_task_txt.strip():
                             selected_task["status"] = "handoff"
                             formatted_handoff = format_bilingual_content(f"Tiến độ: {progress_txt} - Kế hoạch tiếp: {next_task_txt}")
@@ -449,12 +483,12 @@ if "TRANG 1" in page:
 
             if st.session_state.get("show_pop_edit", False):
                 with st.form("form_pop_edit"):
-                    st.markdown(f"SỬA CÔNG VIỆC / 编辑工作: **{selected_task['machine']}**")
+                    st.markdown(f"Sửa công việc / 编辑工作: **{selected_task['machine']}**")
                     pwd_in = st.text_input("Mật khẩu / 密码 *", type="password")
-                    e_mach = st.text_input("Tên Máy / 设备名称", value=selected_task["machine"])
+                    e_mach = st.text_input("Tên máy / 设备名称", value=selected_task["machine"])
                     e_cont = st.text_area("Nội dung / 内容", value=selected_task["content"])
                     e_prio = st.checkbox("Ưu tiên / 优先", value=selected_task.get("is_priority", False))
-                    if st.form_submit_button("Lưu Thay Đổi / 保存"):
+                    if st.form_submit_button("Lưu thay đổi / 保存"):
                         if check_password(pwd_in):
                             selected_task["machine"] = format_bilingual_content(e_mach)
                             selected_task["content"] = format_bilingual_content(e_cont)
@@ -467,9 +501,9 @@ if "TRANG 1" in page:
 
             if st.session_state.get("show_pop_del", False):
                 with st.form("form_pop_del"):
-                    st.markdown(f"XÓA CÔNG VIỆC / 删除工作: **{selected_task['machine']}**")
+                    st.markdown(f"Xóa công việc / 删除工作: **{selected_task['machine']}**")
                     pwd_in2 = st.text_input("Mật khẩu / 密码 *", type="password")
-                    if st.form_submit_button("Xác Nhận Xóa / 确认删除"):
+                    if st.form_submit_button("Xác nhận xóa / 确认删除"):
                         if check_password(pwd_in2):
                             st.session_state.db["tasks"].remove(selected_task)
                             save_data(st.session_state.db)
@@ -483,13 +517,13 @@ if "TRANG 1" in page:
             st.markdown("### NHẬP CÔNG VIỆC MỚI / 添加新工作")
             col_t1, col_t2 = st.columns([2, 1])
             with col_t1:
-                t_machine = st.text_input("Công việc và Máy / 设备与工作 *", placeholder="Ví dụ: PE21")
+                t_machine = st.text_input("Công việc và máy / 设备与工作 *", placeholder="Ví dụ: PE21")
             with col_t2:
                 t_prio = st.checkbox("Ưu tiên / 优先")
 
-            t_content = st.text_area("Nội dung chi tiết / 详细内容 *", placeholder="Ví dụ: Ráp áo lô kéo giản 2")
+            t_content = st.text_area("Nội dung chi tiết / 详细内容 *", placeholder="Ví dụ: Ráp áo lô kéo giãn 2")
             
-            if st.form_submit_button("LƯU CÔNG VIỆC / 保存工作", use_container_width=True):
+            if st.form_submit_button("Lưu công việc / 保存工作", use_container_width=True):
                 if t_machine.strip() and t_content.strip():
                     bilingual_machine = format_bilingual_content(t_machine)
                     bilingual_content = format_bilingual_content(t_content)
@@ -518,10 +552,10 @@ elif "TRANG 2" in page:
 
     with st.form("form_repair", clear_on_submit=True):
         st.markdown("### BÁO DỪNG MÁY SỬA MỚI / 登记停机维修")
-        r_machine = st.text_input("Tên Máy Dừng / 停机设备 *", placeholder="Ví dụ: PE66")
+        r_machine = st.text_input("Tên máy dừng / 停机设备 *", placeholder="Ví dụ: PE66")
         r_content = st.text_area("Sự cố & Nội dung sửa / 故障与维修内容 *", placeholder="Ví dụ: Thay van giảm áp hơi nóng")
         
-        if st.form_submit_button("BÁO DỪNG MÁY / 提交停机", use_container_width=True):
+        if st.form_submit_button("Báo dừng máy / 提交停机", use_container_width=True):
             if r_machine.strip() and r_content.strip():
                 if "repairs" not in st.session_state.db:
                     st.session_state.db["repairs"] = []
@@ -547,7 +581,7 @@ elif "TRANG 2" in page:
 
     for r in repairs_list:
         st_color = "#10b981" if r.get("is_done") else "#ef4444"
-        st_text = "ĐÃ SỬA XONG / 已修好" if r.get("is_done") else "ĐANG SỬA / 维修中"
+        st_text = "Đã sửa xong / 已修好" if r.get("is_done") else "Đang sửa / 维修中"
 
         st.markdown(f"""
         <div style="border-left: 5px solid {st_color}; background: #ffffff; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px;">
@@ -561,14 +595,14 @@ elif "TRANG 2" in page:
         """, unsafe_allow_html=True)
 
         if not r.get("is_done"):
-            if st.button("Tích Hoàn Thành (Đã Sửa Xong) / 完成", key=f"fix_{r['id']}", use_container_width=True):
+            if st.button("Tích hoàn thành (Đã sửa xong) / 完成", key=f"fix_{r['id']}", use_container_width=True):
                 r["is_done"] = True
                 if "handoffs" not in st.session_state.db:
                     st.session_state.db["handoffs"] = []
                 st.session_state.db["handoffs"].append({
                     "id": len(st.session_state.db["handoffs"]) + 1,
                     "machine": clean_machine_name(r["machine"]),
-                    "content": f"[ĐÃ SỬA XONG / 已修好] {r['content']}",
+                    "content": f"[Đã sửa xong / 已修好] {r['content']}",
                     "sender": "Thợ sửa / 维修工",
                     "time": current_time_str
                 })
@@ -591,7 +625,7 @@ elif "TRANG 3" in page:
         with st.form("form_reset_ho"):
             st.markdown("⚠️ **Xác nhận làm sạch toàn bộ Trang 3 để điền ca mới:**")
             pw_reset = st.text_input("Mật khẩu quản lý / 密码 *", type="password")
-            if st.form_submit_button("XÁC NHẬN RESET LÀM SẠCH / 确认清空"):
+            if st.form_submit_button("Xác nhận reset làm sạch / 确认清空"):
                 if check_password(pw_reset):
                     st.session_state.db["handoffs"] = []
                     save_data(st.session_state.db)
@@ -610,7 +644,7 @@ elif "TRANG 3" in page:
         with col_h2:
             h_content = st.text_area("Nội dung bàn giao / 交接内容 *", placeholder="Ví dụ: Thay bạc đạn cốt dao")
 
-        if st.form_submit_button("GỬI BÀN GIAO CA / 提交交接", use_container_width=True):
+        if st.form_submit_button("Gửi bàn giao ca / 提交交接", use_container_width=True):
             if h_sender.strip() and h_machine.strip() and h_content.strip():
                 if "handoffs" not in st.session_state.db:
                     st.session_state.db["handoffs"] = []
@@ -626,7 +660,7 @@ elif "TRANG 3" in page:
                 if save_data(st.session_state.db):
                     st.rerun()
             else:
-                st.error("Vui lòng nhập đầy đủ (*) / 请填写完整")
+                st.error("Vui lòng điền đầy đủ (*) / 请填写完整")
 
     st.divider()
     st.markdown("### DỮ LIỆU GIAO CA TRONG NGÀY / 当天交接数据")
