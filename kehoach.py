@@ -244,49 +244,65 @@ def render_copy_button(page_num):
     <script>
     function generateAndCopy_{page_num}() {{
         const element = document.getElementById('report-box-{page_num}');
-        html2canvas(element, {{ scale: 2 }}) .then(canvas => {{
+        html2canvas(element, {{ scale: 2 }}).then(canvas => {{
             canvas.toBlob(blob => {{
                 try {{
                     const item = new ClipboardItem({{ "image/png": blob }});
                     navigator.clipboard.write([item]).then(() => {{
-                        alert('✅ ĐÃ SAO CHÉP HÌNH THÀNH CÔNG!\\nMở Zalo hoặc WeChat nhấn Ctrl+V để dán gửi.');
+                        alert('✅ ĐÃ SAO CHÉP HÌNH THÀNH CÔNG!\\nMở Zalo/WeChat bấm Dán (Ctrl+V).');
                     }}).catch(err => {{
-                        openImageWin(canvas);
+                        downloadCanvas_{page_num}(canvas);
                     }});
                 }} catch (e) {{
-                    openImageWin(canvas);
+                    downloadCanvas_{page_num}(canvas);
                 }}
             }});
         }});
     }}
 
-    function openImageWin(canvas) {{
-        const win = window.open("");
-        win.document.write('<div style="text-align:center; font-family:sans-serif; padding:15px;">');
-        win.document.write('<p style="font-size:16px; font-weight:bold; color:#2563eb;">📌 CÁCH GỬI ẢNH NHANH CHO ZALO/WECHAT:</p>');
-        win.document.write('<p style="font-size:14px; color:#333;">👉 <b>Ấn giữ vào hình bên dưới</b> chọn <b>"Sao chép hình ảnh" (Copy Image)</b> rồi sang Zalo bấm dán (Ctrl+V).</p>');
-        win.document.write('<hr style="margin:15px 0;"/>');
-        win.document.write('<img src="' + canvas.toDataURL() + '" style="border:2px solid #ccc; max-width:100%; border-radius:8px;" />');
-        win.document.write('</div>');
+    function downloadCanvas_{page_num}(canvas) {{
+        const link = document.createElement('a');
+        link.download = 'Bao_Cao_Bao_Tri_Trang_{page_num}.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        alert('📥 ĐÃ TẢI ẢNH VỀ MÁY!\\nAnh mở Zalo hoặc WeChat bấm chọn Tệp/Hình ảnh để gửi đi nhé.');
     }}
     </script>
     
-    <button onclick="generateAndCopy_{page_num}()" style="
-        width: 100%;
-        background: #2563eb;
-        color: white;
-        border: none;
-        padding: 12px;
-        font-size: 15px;
-        font-weight: bold;
-        border-radius: 8px;
-        cursor: pointer;
-        margin-bottom: 10px;
-    ">
-        📷 SAO CHÉP HÌNH BẢNG GỬI ZALO/WECHAT
-    </button>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button onclick="generateAndCopy_{page_num}()" style="
+            flex: 1;
+            min-width: 200px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        ">
+            📋 SAO CHÉP HÌNH (MÁY TÍNH)
+        </button>
+        <button onclick="html2canvas(document.getElementById('report-box-{page_num}'), {{ scale: 2 }}).then(c => downloadCanvas_{page_num}(c))" style="
+            flex: 1;
+            min-width: 200px;
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        ">
+            📥 TẢI HÌNH VỀ ĐIỆN THOẠI (ZALO/WECHAT)
+        </button>
+    </div>
     """
-    comp_height = 480 if page_num in [1, 2] else 350
+    comp_height = 500 if page_num in [1, 2] else 380
     st.components.v1.html(custom_html, height=comp_height, scrolling=True)
 
 st.markdown("<h3 style='text-align: center; color: #0f172a; margin-bottom: 5px;'>QUẢN LÝ BẢO TRÌ MÁY / 设备维修管理</h3>", unsafe_allow_html=True)
@@ -517,6 +533,26 @@ elif "TRANG 3" in page:
     st.caption("Dữ liệu Trang 3 sẽ tự động xoá sạch vào lúc 05:00 và 18:00 hằng ngày / 数据将在每天 05:00 和 18:00 自动清空。")
 
     render_copy_button(3)
+
+    # NÚT RESET BẢNG GIAO CA BẰNG TAY
+    col_r1, col_r2 = st.columns([2, 1])
+    with col_r2:
+        if st.button("🔄 RESET LÀM SẠCH BẢNG GIAO CA", use_container_width=True):
+            st.session_state["show_pop_reset_ho"] = True
+
+    if st.session_state.get("show_pop_reset_ho", False):
+        with st.form("form_reset_ho"):
+            st.markdown("⚠️ **Xác nhận làm sạch toàn bộ Trang 3 để điền ca mới:**")
+            pw_reset = st.text_input("Mật khẩu quản lý / 密码 *", type="password")
+            if st.form_submit_button("XÁC NHẬN RESET LÀM SẠCH / 确认清空"):
+                if check_password(pw_reset):
+                    st.session_state.db["handoffs"] = []
+                    save_data(st.session_state.db)
+                    st.session_state["show_pop_reset_ho"] = False
+                    st.success("Đã làm sạch Trang 3 thành công!")
+                    st.rerun()
+                else:
+                    st.error("Sai mật khẩu / 密码错误!")
 
     with st.form("form_handoff", clear_on_submit=True):
         st.markdown("### Nhập Nội Dung Bàn Giao Ca / 填写交接内容")
