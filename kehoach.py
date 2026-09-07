@@ -70,13 +70,13 @@ DICT_SPELL_TRANS = [
     (r"\bcot dao\b|\bcốt dao\b|\btruc dao\b|\btrục dao\b", "cốt dao", "刀轴"),
     (r"\bthu cuon nhieu vi tri mat chot\b|\bthu cuộn nhiều vị trí mất chốt\b", "thu cuộn nhiều vị trí mất chốt", "收卷多处掉销/掉卡"),
     (r"\bthu cuon\b|\bthu cuộn\b|\bcuon\b|\bcuộn\b", "thu cuộn", "收卷"),
-    (r"\bmat chot\b|\bmất chốt\b", "m mất chốt", "掉销"),
+    (r"\bmat chot\b|\bmất chốt\b", "mất chốt", "掉销"),
     (r"\bnhieu vi tri\b|\bnhiều vị trí\b", "nhiều vị trí", "多处"),
     (r"\bhop so\b|\bhộp số\b", "hộp số", "齿轮箱"),
     (r"\btruc vit\b|\btrục vít\b", "trục vít", "螺杆"),
     (r"\btruc\b|\btrục\b", "trục", "轴"),
     (r"\btach nuoc\b|\btách nước\b", "tách nước", "脱水"),
-    (r"\bbien tan\b|\bbiến tần\b", "变频器"),
+    (r"\bbien tan\b|\bbiến tần\b", "biến tần", "变频器"),
     (r"\bdong co\b|\bmotor\b|\bđộng cơ\b", "động cơ", "电机"),
     (r"\bxilanh\b|\bxi lanh\b", "xi lanh", "气缸"),
     (r"\bday curoa\b|\bcu roa\b", "dây curoa", "皮带"),
@@ -400,7 +400,7 @@ if "TRANG 1" in page:
                                 st.session_state.db["handoffs"] = []
                             st.session_state.db["handoffs"].append({
                                 "id": len(st.session_state.db["handoffs"]) + 1,
-                                "machine": selected_task["machine"],
+                                "machine": clean_machine_name(selected_task["machine"]),
                                 "content": formatted_handoff,
                                 "sender": "Chuyển ca / 移交",
                                 "time": current_time_str
@@ -531,7 +531,7 @@ elif "TRANG 2" in page:
                     st.session_state.db["handoffs"] = []
                 st.session_state.db["handoffs"].append({
                     "id": len(st.session_state.db["handoffs"]) + 1,
-                    "machine": r["machine"],
+                    "machine": clean_machine_name(r["machine"]),
                     "content": f"[Đã sửa xong / 已修好] {r['content']}",
                     "sender": "Thợ sửa / 维修工",
                     "time": current_time_str
@@ -578,7 +578,7 @@ elif "TRANG 3" in page:
             if h_sender.strip() and h_machine.strip() and h_content.strip():
                 if "handoffs" not in st.session_state.db:
                     st.session_state.db["handoffs"] = []
-                bilingual_h_machine = format_bilingual_content(h_machine)
+                bilingual_h_machine = clean_machine_name(h_machine)
                 bilingual_h_content = format_bilingual_content(h_content)
                 st.session_state.db["handoffs"].append({
                     "id": len(st.session_state.db["handoffs"]) + 1,
@@ -644,7 +644,7 @@ elif "TRANG 3" in page:
                     nh_c = st.text_area("Nội dung / 内容", value=selected_ho["content"])
                     if st.form_submit_button("Lưu sửa / 保存"):
                         if check_password(pw_e):
-                            selected_ho["machine"] = format_bilingual_content(nh_m)
+                            selected_ho["machine"] = clean_machine_name(nh_m)
                             selected_ho["content"] = format_bilingual_content(nh_c)
                             save_data(st.session_state.db)
                             st.session_state["show_pop_ho_edit"] = False
